@@ -223,6 +223,11 @@ app_license = "mit"
 # 		"doctype": "{doctype_3}",
 # 		"strict": False,
 # 	},
+fixtures = [
+    {"dt": "Client Script", "filters": [["module", "=", "Gormsolutions Mobile App"]]},
+    {"dt": "Custom Field", "filters": [["module", "=", "Gormsolutions Mobile App"]]},
+    
+]
 # 	{
 # 		"doctype": "{doctype_4}"
 # 	}

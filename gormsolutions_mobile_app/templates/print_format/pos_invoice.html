@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Invoice</title>
+	<style>
+        /* General Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .print-format {
+            width: 6in;
+            padding: 20px;
+            min-height: 8in;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .large-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 0;
+        }
+
+        .sub-header {
+            font-size: 18px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        .invoice-header {
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .invoice-details {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f4f7f6;
+            color: #1a73e8;
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        .summary-table td {
+            text-align: right;
+        }
+
+        .summary-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .total {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .total-amount {
+            color: #e91e63;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .thank-you {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media screen {
+            .print-format {
+                width: 4in;
+                padding: 0.25in;
+                min-height: 8in;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="print-format">
+        <h1>Sales Invoice</h1>
+        <p class="company-name">{{ doc.company }}</p>
+
+        <p><b>{{ _("Invoice No") }}:</b> {{ doc.name }}<br>
+        <b>{{ _("Date") }}:</b> {{ doc.get_formatted("posting_date") }}<br>
+        <b>{{ _("Customer") }}:</b> {{ doc.customer_name }}</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>{{ _("Item") }}</th>
+                    <th>{{ _("Qty") }}</th>
+                    <th>{{ _("Rate") }}</th> <!-- Added Rate Column -->
+                    <th>{{ _("Amount") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {%- for item in doc.items -%}
+                <tr>
+                    <td>{{ item.item_name }}</td>
+                    <td>{{ item.qty }}</td>
+                    <td>{{ item.rate }}</td> <!-- Displaying Rate -->
+                    <td>{{ item.amount }}</td>
+                </tr>
+                {%- endfor -%}
+            </tbody>
+        </table>
+
+        <table class="total-table">
+            <tbody>
+                {%- if doc.discount_amount -%}
+                <tr>
+                    <td>{{ _("Discount") }}</td>
+                    <td>{{ doc.discount_amount }}</td>
+                </tr>
+                {%- endif -%}
+                <tr>
+                    <td class="grand-total">{{ _("Grand Total") }}</td>
+                    <td class="amount">{{ doc.grand_total }}</td>
+                </tr>
+                <tr>
+                    <td class="grand-total">{{ _("Paid Amount") }}</td>
+                    <td class="amount">
+                        {% set paid = doc.grand_total - doc.outstanding_amount %}
+                        {{ paid }}
+                    </td>
+                </tr>
+                {%- if doc.outstanding_amount -%}
+                <tr>
+                    <td class="grand-total">{{ _("Outstanding Amount") }}</td>
+                    <td class="amount">{{ doc.outstanding_amount }}</td>
+                </tr>
+                {%- endif -%}
+            </tbody>
+        </table>
+
+        <p class="thank-you">{{ doc.terms or "" }}</p>
+        <p class="thank-you">{{ _("Thank you, please visit again.") }}</p>
+    </div>
+
+</body>
+</html>

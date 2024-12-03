@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Invoice</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .print-format {
+            width: 6in;
+            padding: 20px;
+            min-height: 8in;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .large-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 0;
+        }
+
+        .sub-header {
+            font-size: 18px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        .invoice-header {
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .invoice-details {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f4f7f6;
+            color: #1a73e8;
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        .summary-table td {
+            text-align: right;
+        }
+
+        .summary-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .total {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .total-amount {
+            color: #e91e63;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .thank-you {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media screen {
+            .print-format {
+                width: 4in;
+                padding: 0.25in;
+                min-height: 8in;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-format">
+        <div class="text-center invoice-header">
+            <p class="large-text">Sales Invoice</p>
+            <p class="sub-header">Shell Elgon</p>
+        </div>
+
+        <div class="invoice-details">
+            <p><strong>Invoice No:</strong> ACC-SINV-2024-01969</p>
+            <p><strong>Date:</strong> 19-11-2024</p>
+            <p><strong>Customer:</strong> Shell Cash Customer</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="30%">Item</th>
+                    <th width="25%">Qty</th>
+                    <th width="25%">Rate</th> <!-- Added Rate Column -->
+                    <th width="20%">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>AGO</td>
+                    <td>281.034</td>
+                    <td>4690.0</td> <!-- Displaying Rate -->
+                    <td>1,318,049.46</td>
+                </tr>
+                <tr>
+                    <td>PMS</td>
+                    <td>63.018</td>
+                    <td>5020.0</td> <!-- Displaying Rate -->
+                    <td>316,350.36</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="summary-table">
+            <tbody>
+                <tr>
+                    <td>Discount</td>
+                    <td>3,476.82</td>
+                </tr>
+                <tr>
+                    <td><strong>Grand Total</strong></td>
+                    <td class="total-amount">1,630,923.00</td>
+                </tr>
+                <tr>
+                    <td><strong>Paid Amount</strong></td>
+                    <td class="total-amount">1,630,923.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="thank-you">Thank you for your business! Please visit again.</p>
+    </div>
+</body>
+</html>
