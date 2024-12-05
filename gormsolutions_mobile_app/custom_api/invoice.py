@@ -35,7 +35,7 @@ def get_invoice_details(limit, offset, search=None):
     sales_invoice_details = frappe.get_all(
         'Sales Invoice',
         fields=[
-            'name', 'grand_total', 'paid_amount', 'outstanding_amount','owner', 
+            'name', 'grand_total','posting_date', 'paid_amount', 'outstanding_amount','owner', 
             'docstatus', "status", 'customer', 'customer_name', 'outstanding_amount'
         ],
         order_by='posting_date desc',
