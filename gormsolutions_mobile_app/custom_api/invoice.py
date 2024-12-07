@@ -46,48 +46,6 @@ def get_invoice_details(limit, offset, search=None):
 
     return sales_invoice_details
 
-
-# @frappe.whitelist()
-# def create_invoice(customer_name,paid_amount,items,user=None):
-    
-#     items = json.loads(items)
-#     pos_profile = None
-#     if user:
-#         pos_profile = frappe.db.get_value("POS Profile User",{"default":1,"user":user},"parent")
-#         pos_warehouse = frappe.db.get_value("POS Profile",pos_profile,"warehouse")
-#         for item in items:
-#             item['warehouse'] = pos_warehouse
-
-#     # return items
-    
-#     try:
-#         # items = [{
-#         # "item_code": "apple-15",
-#     	#  "qty": 16.0
-#         # },
-#         # {
-#         # "item_code": "apple-5",
-#     	#  "qty": 16.0
-#         # }
-#         # ]
-#         invoice_doc = frappe.get_doc({
-#             "doctype":"Sales Invoice",
-#             "customer":customer_name,
-#             "pos_profile":pos_profile,
-            
-#             "is_pos":1,
-#             "items":items,
-#             "payments":[{
-#             "mode_of_payment":"Cash",
-#             "amount":paid_amount
-#             }]
-#         })
-        
-#         res_doc = invoice_doc.insert(ignore_permissions=True)
-#         res_doc.submit()
-#         return res_doc
-#     except Exception as e:
-#         return e
 @frappe.whitelist()
 def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, update_stock=None):
     import json
@@ -156,7 +114,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
         invoice_doc = frappe.get_doc(invoice_doc_data)
 
         # Save and submit the document
-        res_doc = invoice_doc.insert(ignore_permissions=True)
+        res_doc = invoice_doc.insert()
         res_doc.submit()
         return res_doc
 
@@ -259,16 +217,17 @@ def get_sales_payment_summary(start_date, end_date):
         user_doc = frappe.get_doc("User", frappe.session.user)
         user_full_name = user_doc.full_name
 
-        # Fetch Sales Invoice total for the specified date range and creator, excluding cancelled records
+        # Fetch Sales Invoice total for the specified date range, creator, and POS status (excluding cancelled records)
         invoice_total = frappe.db.sql("""
             SELECT SUM(`tabSales Invoice`.grand_total) as total_amount
             FROM `tabSales Invoice`
             WHERE posting_date BETWEEN %s AND %s
             AND docstatus = 1  # Exclude cancelled records (docstatus = 2)
             AND owner = %s
+            
         """, (start_date, end_date, frappe.session.user))[0][0]
 
-        # Fetch Payment Entry total for the specified date range linked to Sales Invoice and creator
+        # Fetch Payment Entry total for the specified date range, linked to Sales Invoice and creator
         payment_total = frappe.db.sql("""
             SELECT SUM(`tabPayment Entry`.paid_amount) as total_paid_amount
             FROM `tabPayment Entry Reference`
@@ -277,14 +236,28 @@ def get_sales_payment_summary(start_date, end_date):
             WHERE `tabPayment Entry`.posting_date BETWEEN %s AND %s
             AND `tabPayment Entry`.docstatus = 1  # Exclude cancelled records (docstatus = 2)
             AND `tabSales Invoice`.owner = %s
+            """, (start_date, end_date, frappe.session.user))[0][0]
+
+        # Add the paid_amount of the Sales Invoice records with is_pos = 1 directly
+        invoice_paid_total = frappe.db.sql("""
+            SELECT SUM(`tabSales Invoice`.paid_amount) as total_invoice_paid
+            FROM `tabSales Invoice`
+            WHERE posting_date BETWEEN %s AND %s
+            AND docstatus = 1  # Exclude cancelled records (docstatus = 2)
+            AND owner = %s
+            AND is_pos = 1  # Include only POS invoices with a paid amount
         """, (start_date, end_date, frappe.session.user))[0][0]
 
+        # Combine the Payment Entry total and the Invoice paid amounts
+        total_payments = (payment_total or 0) + (invoice_paid_total or 0)
+
+        # Prepare data to be returned
         data = {
             "user": user_full_name,
             "start_date": start_date,
             "end_date": end_date,
-            "total_invoices": invoice_total,
-            "total_payments": payment_total,
+            "total_invoices": invoice_total if invoice_total else 0,
+            "total_payments": total_payments,
         }
         return data
     except Exception as e:
