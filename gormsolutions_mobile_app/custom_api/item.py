@@ -16,20 +16,18 @@ def get_item_details(limit, offset, search=None, user=None):
         list: List of item details with stock and price information.
     """
     current_user = frappe.session.user
-    # default_warehouse = None
 
-    # Fetch default warehouse exclusively from User Permissions
+    # Fetch default warehouse from User Permissions
     user_permissions = frappe.get_all(
         "User Permission",
         filters={"user": current_user, "allow": "Warehouse"},
         fields=["for_value"]
     )
     default_warehouse = [perm["for_value"] for perm in user_permissions]
-
     if not default_warehouse:
         frappe.throw("Default warehouse not found. Please set it in User Permissions.")
 
-    # Fetch User Permission for Item Groups
+    # Fetch allowed Item Groups
     allowed_item_groups = frappe.get_all(
         "User Permission",
         filters={"user": current_user, "allow": "Item Group"},
@@ -37,7 +35,17 @@ def get_item_details(limit, offset, search=None, user=None):
     )
     allowed_group_names = [group["for_value"] for group in allowed_item_groups]
 
-    # Fetch all child item groups under the allowed groups
+    # Fetch allowed Price List
+    price_list_permissions = frappe.get_all(
+        "User Permission",
+        filters={"user": current_user, "allow": "Price List"},
+        fields=["for_value"]
+    )
+    price_list = [perm["for_value"] for perm in price_list_permissions]
+    if not price_list:
+        frappe.throw("No price list found. Please set it in User Permissions.")
+
+    # Fetch all child item groups under allowed groups
     item_groups_to_filter = allowed_group_names[:]
     if allowed_group_names:
         child_groups = frappe.get_all(
@@ -58,7 +66,7 @@ def get_item_details(limit, offset, search=None, user=None):
     if item_groups_to_filter:
         filters.append(["item_group", "in", item_groups_to_filter])
 
-    # Fetch items based on the constructed filters
+    # Fetch items based on filters
     item_details = frappe.get_all(
         "Item",
         filters=filters,
@@ -69,11 +77,15 @@ def get_item_details(limit, offset, search=None, user=None):
 
     # Enrich item details with stock and price information
     for item in item_details:
-        item["stock"] = get_stock_balance(item["item_code"], default_warehouse)
+        try:
+            item["stock"] = get_stock_balance(item["item_code"], default_warehouse)
+        except Exception:
+            item["stock"] = 0.00
+
         item["price"] = frappe.get_value(
             "Item Price",
-            {"item_code": item["item_code"], "selling": 1},
-            "price_list_rate",
+            {"item_code": item["item_code"], "selling": 1, "price_list": price_list[0]},
+            "price_list_rate"
         ) or 0.00
 
         # Fetch stock in other warehouses if permitted
@@ -92,7 +104,6 @@ def get_item_details(limit, offset, search=None, user=None):
             ]
 
     return item_details
-
 
 @frappe.whitelist(allow_guest = True)
 def get_item_details_offline(limit=None,offset=None,search=None):

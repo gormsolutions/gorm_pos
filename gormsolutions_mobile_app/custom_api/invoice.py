@@ -19,6 +19,9 @@ import json
 
 #     return sales_invoice_details
 
+import frappe
+from datetime import datetime, timedelta
+
 @frappe.whitelist(allow_guest=True)
 def get_invoice_details(limit, offset, search=None):
     # Initialize filters with docstatus filter
@@ -35,8 +38,8 @@ def get_invoice_details(limit, offset, search=None):
     sales_invoice_details = frappe.get_all(
         'Sales Invoice',
         fields=[
-            'name', 'grand_total','posting_date', 'paid_amount', 'outstanding_amount','owner', 
-            'docstatus', "status", 'customer', 'customer_name', 'outstanding_amount'
+            'name', 'grand_total', 'posting_time', 'posting_date', 'paid_amount', 'outstanding_amount',
+            'owner', 'docstatus', "status", 'customer', 'customer_name'
         ],
         order_by='posting_date desc',
         filters=filters,
@@ -44,7 +47,41 @@ def get_invoice_details(limit, offset, search=None):
         page_length=limit
     )
 
+    # Format posting_time to include AM/PM and two decimal places for seconds
+    for invoice in sales_invoice_details:
+        if invoice.get('posting_time'):
+            posting_time_str = str(invoice['posting_time'])
+
+            # Ensure seconds are in two digits and fractional seconds are not more than two decimal places
+            time_parts = posting_time_str.split(":")
+            if len(time_parts) == 3:
+                seconds_parts = time_parts[2].split(".")
+                if len(seconds_parts) == 1:
+                    # No decimal part, just ensure 2 digits for seconds
+                    time_parts[2] = f"{seconds_parts[0]:02}"
+                else:
+                    # If there are decimals, ensure only two decimal places
+                    time_parts[2] = f"{seconds_parts[0]:02}.{seconds_parts[1][:2]}"  # Limit to 2 decimals
+
+            # Rebuild the time string after fixing the seconds and microseconds
+            formatted_time_str = ":".join(time_parts)
+
+            try:
+                # Try parsing the fixed time with fractional seconds
+                posting_time = datetime.strptime(formatted_time_str, '%H:%M:%S.%f')
+                formatted_time = posting_time.strftime('%I:%M:%S.%f')[:-3]  # Trim microseconds to two decimals
+                formatted_time = formatted_time + " " + posting_time.strftime("%p")
+            except ValueError:
+                # Fallback for cases where the format is not as expected
+                posting_time = datetime.strptime(formatted_time_str, '%H:%M:%S')
+                formatted_time = posting_time.strftime('%I:%M:%S') + " " + posting_time.strftime("%p")
+
+            # Update the posting_time field with the formatted value
+            invoice['posting_time'] = formatted_time
+
     return sales_invoice_details
+
+
 
 @frappe.whitelist()
 def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, update_stock=None):
@@ -99,6 +136,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
             "update_stock": update_stock,  # Ensure update_stock is enabled
             "is_pos": is_pos,  # Use the value passed by the user
             "items": items,
+            "payment_terms_template": frappe.db.get_value("Customer", customer_name, "payment_terms") or None
         }
 
         # Include POS profile only if is_pos is enabled
