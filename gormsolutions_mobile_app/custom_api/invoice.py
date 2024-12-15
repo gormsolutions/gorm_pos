@@ -133,6 +133,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
         invoice_doc_data = {
             "doctype": "Sales Invoice",
             "customer": customer_name,
+            "from_mobile_app": "Mobile App Cash Customer",
             "update_stock": update_stock,  # Ensure update_stock is enabled
             "is_pos": is_pos,  # Use the value passed by the user
             "items": items,
