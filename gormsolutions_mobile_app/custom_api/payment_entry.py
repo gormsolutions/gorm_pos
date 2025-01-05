@@ -76,7 +76,7 @@ def mode_of_payment():
         return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=True)
-def receive_payment(party=None, mode_of_payment=None, paid_amount=0, posting_date=None):
+def receive_payment(party=None, mode_of_payment=None, paid_amount=0, posting_date=None, reference_no=None, reference_date=None):
     if not party or not mode_of_payment or not paid_amount or not posting_date:
         return {"error": "Party, mode of payment, paid amount, and posting date are required."}
     
@@ -100,6 +100,11 @@ def receive_payment(party=None, mode_of_payment=None, paid_amount=0, posting_dat
         if not default_account:
             return {"error": "No default account found for the selected mode of payment."}
         
+        # Check if the Default Account is of Account Type 'Bank'
+        account_doc = frappe.get_doc("Account", default_account)
+        if account_doc.account_type == "Bank" and (not reference_no or not reference_date):
+            return {"error": "Reference No and Reference Date are mandatory for transactions involving bank accounts."}
+        
         # Fetch Customer Name
         customer_name = frappe.get_value("Customer", party, "customer_name")
         if not customer_name:
@@ -118,6 +123,8 @@ def receive_payment(party=None, mode_of_payment=None, paid_amount=0, posting_dat
             "paid_amount": paid_amount,
             "received_amount": paid_amount,
             "posting_date": posting_date,  # Set the posting date
+            "reference_no": reference_no,  # Include Reference No
+            "reference_date": reference_date,  # Include Reference Date
         })
         
         payment_doc.insert(ignore_permissions=True)
