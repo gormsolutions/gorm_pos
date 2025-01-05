@@ -1,5 +1,6 @@
 import frappe
 from erpnext.stock.utils import get_stock_balance
+from frappe import throw, msgprint, _
 
 @frappe.whitelist()
 def get_item_details(limit, offset, search=None, user=None):
@@ -17,16 +18,17 @@ def get_item_details(limit, offset, search=None, user=None):
     """
     current_user = frappe.session.user
 
-    # Fetch default warehouse from User Permissions
+    # Fetch all warehouses from User Permissions
     user_permissions = frappe.get_all(
         "User Permission",
         filters={"user": current_user, "allow": "Warehouse"},
         fields=["for_value"]
     )
-    default_warehouse = [perm["for_value"] for perm in user_permissions]
-    if not default_warehouse:
-        frappe.throw("Default warehouse not found. Please set it in User Permissions.")
-
+    allowed_warehouses = [perm["for_value"] for perm in user_permissions]
+    
+    if not allowed_warehouses:
+        frappe.throw(_("No warehouses found in User Permissions. Please set them."))
+    
     # Fetch allowed Item Groups
     allowed_item_groups = frappe.get_all(
         "User Permission",
@@ -41,9 +43,11 @@ def get_item_details(limit, offset, search=None, user=None):
         filters={"user": current_user, "allow": "Price List"},
         fields=["for_value"]
     )
-    price_list = [perm["for_value"] for perm in price_list_permissions]
-    if not price_list:
-        frappe.throw("No price list found. Please set it in User Permissions.")
+    price_lists = [perm["for_value"] for perm in price_list_permissions]
+    
+    if not price_lists:
+        frappe.throw(_("No price list found. Please set it in User Permissions."))
+    price_list = price_lists[0]  # Default to the first price list if multiple are allowed
 
     # Fetch all child item groups under allowed groups
     item_groups_to_filter = allowed_group_names[:]
@@ -58,8 +62,8 @@ def get_item_details(limit, offset, search=None, user=None):
     # Prepare filters for fetching items
     filters = [
         ["disabled", "=", 0],
-        ["is_sales_item", "=", 1],
-        ["is_stock_item", "=", 1],
+        # ["is_sales_item", "=", 1],
+        # ["is_stock_item", "=", 1],
     ]
     if search:
         filters.append(["item_name", "like", f"%{search}%"])
@@ -77,31 +81,27 @@ def get_item_details(limit, offset, search=None, user=None):
 
     # Enrich item details with stock and price information
     for item in item_details:
-        try:
-            item["stock"] = get_stock_balance(item["item_code"], default_warehouse)
-        except Exception:
-            item["stock"] = 0.00
+        # Aggregate stock across all allowed warehouses
+        stock_total = 0
+        warehouse_stock = []
+        
+        for warehouse in allowed_warehouses:
+            stock_balance = get_stock_balance(item["item_code"], warehouse) or 0.00
+            stock_total += stock_balance
+            warehouse_stock.append({
+                "warehouse_name": warehouse,
+                "stock": stock_balance
+            })
+        
+        item["stock"] = stock_total  # Total stock across all warehouses
+        item["other_warehouse_stock"] = warehouse_stock  # Detailed warehouse-wise stock
 
+        # Get item price from the price list
         item["price"] = frappe.get_value(
             "Item Price",
-            {"item_code": item["item_code"], "selling": 1, "price_list": price_list[0]},
+            {"item_code": item["item_code"], "selling": 1, "price_list": price_list},
             "price_list_rate"
         ) or 0.00
-
-        # Fetch stock in other warehouses if permitted
-        if frappe.has_permission("Bin", ptype="read", throw=False):
-            warehouse_stock = frappe.get_all(
-                "Bin",
-                filters=[
-                    ["item_code", "=", item["item_code"]],
-                    ["warehouse", "!=", default_warehouse],
-                ],
-                fields=["warehouse", "actual_qty"],
-            )
-            item["other_warehouse_stock"] = [
-                {"warehouse_name": stock["warehouse"], "stock": stock["actual_qty"]}
-                for stock in warehouse_stock
-            ]
 
     return item_details
 

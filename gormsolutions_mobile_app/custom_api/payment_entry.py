@@ -38,7 +38,7 @@ def create_payment(sales_invoice,mode_of_payment,paid_amount):
 #     fields=['name'])
 #     return mode_of_pay_list
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def mode_of_payment():
     try:
         # Get the current user

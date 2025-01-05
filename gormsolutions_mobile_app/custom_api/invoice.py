@@ -22,6 +22,9 @@ import json
 import frappe
 from datetime import datetime, timedelta
 
+import frappe
+from datetime import datetime
+
 @frappe.whitelist(allow_guest=True)
 def get_invoice_details(limit, offset, search=None):
     # Initialize filters with docstatus filter
@@ -79,8 +82,15 @@ def get_invoice_details(limit, offset, search=None):
             # Update the posting_time field with the formatted value
             invoice['posting_time'] = formatted_time
 
-    return sales_invoice_details
+        # Fetch items related to each invoice
+        items = frappe.get_all(
+            'Sales Invoice Item',
+            fields=['item_code', 'rate', 'qty', 'amount'],
+            filters={'parent': invoice['name']}
+        )
+        invoice['items'] = items
 
+    return sales_invoice_details
 
 
 @frappe.whitelist()
@@ -95,7 +105,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
     current_user = frappe.session.user
 
     # Fetch User Permission records for 'Warehouse' allowed for the current user
-    fallback_warehouse = frappe.get_all(
+    warehouse_list = frappe.get_all(
         'User Permission',
         filters={
             'user': current_user,
@@ -103,20 +113,39 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
         },
         fields=['for_value']
     )
-
-    # Determine the fallback warehouse value
-    fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
+    
+    # Determine fallback warehouse
+    fallback_warehouse = warehouse_list[0]['for_value'] if warehouse_list else None
 
     if not fallback_warehouse:
-        # Set a default warehouse if no user permissions are found
+        # Use the default warehouse from Stock Settings if no user permissions found
         fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
         if not fallback_warehouse:
             return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
 
+    # Fetch and validate Mode of Payment
+    mode_of_payment_list = frappe.get_all(
+        'User Permission',
+        filters={
+            'user': current_user,
+            'allow': 'Mode of Payment'
+        },
+        fields=['for_value']
+    )
+
+    mode_of_payment = mode_of_payment_list[0]['for_value'] if mode_of_payment_list else None
+
+    if not mode_of_payment:
+        return {"error": "No Mode of Payment assigned to the user. Please configure Mode of Payment in User Permissions."}
+
+    if not frappe.db.exists('Mode of Payment', mode_of_payment):
+        return {"error": f"The Mode of Payment '{mode_of_payment}' does not exist in the system. Please check the configuration."}
+
+    # Initialize POS profile and warehouse
     pos_profile = None
     pos_warehouse = None
 
-    # If user is provided and is_pos is enabled, fetch POS profile
+    # If user and is_pos are provided, fetch POS profile
     if user and is_pos:
         pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
         pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
@@ -146,10 +175,11 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
 
             # Add payment details for POS invoices
             invoice_doc_data["payments"] = [{
-                "mode_of_payment": "Cash",
+                "mode_of_payment": mode_of_payment,
                 "amount": paid_amount
             }]
 
+        # Create the Sales Invoice document
         invoice_doc = frappe.get_doc(invoice_doc_data)
 
         # Save and submit the document

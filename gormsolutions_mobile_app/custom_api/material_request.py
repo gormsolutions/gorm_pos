@@ -94,3 +94,41 @@ def create_material_request(material_request_type="Material Transfer", items=Non
             "message": "Failed to create Material Request",
             "error": str(e)
         }
+
+
+import frappe
+
+@frappe.whitelist()
+def fetch_material_requests(user=None):
+    """
+    Fetch all Material Requests along with their item details.
+    If 'user' is provided, fetch requests created by that user.
+    If not, fetch all Material Requests.
+    """
+    try:
+        # Set filters based on the user parameter
+        filters = {}
+        if user:
+            filters['owner'] = user
+
+        # Fetch Material Requests based on the filters
+        material_requests = frappe.get_all(
+            'Material Request',
+            filters=filters,
+            fields=['name', 'material_request_type', 'status', 'transaction_date', 'schedule_date']
+        )
+
+        # Add item details for each Material Request
+        for request in material_requests:
+            items = frappe.get_all(
+                'Material Request Item',
+                filters={'parent': request['name']},
+                fields=['item_code', 'item_name', 'qty', 'schedule_date']
+            )
+            request['items'] = items  # Attach items to the Material Request
+
+        return material_requests
+
+    except Exception as e:
+        frappe.log_error(message=frappe.get_traceback(), title="Error Fetching Material Requests with Items")
+        return {"error": str(e)}
