@@ -74,7 +74,7 @@ def get_item_details(limit, offset, search=None, user=None):
     item_details = frappe.get_all(
         "Item",
         filters=filters,
-        fields=["item_code", "item_name", "description", "item_group", "stock_uom"],
+        fields=["item_code", "item_name", "description", "image","item_group", "stock_uom","custom_promotion_amount","custom_on_promotion"],
         start=offset,
         page_length=limit,
     )

@@ -75,6 +75,7 @@ def create_gas_invoice(customer, items, include_payments=None, mode_of_payment=N
         # Adding items to the child table 'items' and calculating totals
         for item in items:
             qty = item.get("qty", 0)
+            
             rate = item.get("rate", 0)
             amount = qty * rate
 
