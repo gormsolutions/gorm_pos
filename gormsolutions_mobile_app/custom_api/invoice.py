@@ -128,7 +128,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
         'User Permission',
         filters={
             'user': current_user,
-            'allow': 'Mode of Payment'
+            'allow': 'Mode of Payment' 
         },
         fields=['for_value']
     )
