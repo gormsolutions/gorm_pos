@@ -102,7 +102,7 @@ def create_invoice(customer_name, paid_amount, items, user=None, is_pos=None, up
         items = json.loads(items)
 
     # Get the current user
-    current_user = frappe.session.user
+    current_user = frappe.session.user 
 
     # Fetch User Permission records for 'Warehouse' allowed for the current user
     warehouse_list = frappe.get_all(

@@ -74,6 +74,7 @@ def create_material_request(material_request_type="Material Transfer", items=Non
         # Create Material Request document
         material_request = frappe.get_doc({
             "doctype": "Material Request",
+            "custom_station": default_cost_center,
             "material_request_type": material_request_type,
             "transaction_date": nowdate(),
             "items": material_request_items
@@ -115,7 +116,7 @@ def fetch_material_requests(user=None):
         material_requests = frappe.get_all(
             'Material Request',
             filters=filters,
-            fields=['name', 'material_request_type', 'status', 'transaction_date', 'schedule_date']
+            fields=['name', 'material_request_type', 'status', 'transaction_date', 'schedule_date','custom_station']
         )
 
         # Add item details for each Material Request
