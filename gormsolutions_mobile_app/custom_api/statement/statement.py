@@ -1,6 +1,5 @@
 import frappe
 from frappe.utils import flt
-
 @frappe.whitelist()
 def get_sales_invoice_details_and_payments(customer, from_date, to_date):
     sales_invoice_data = []
@@ -9,7 +8,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
     running_balance = 0      # Variable to hold the running balance
     balance_brought_forward = 0  # Variable to hold the balance brought forward
 
-    # Calculate Balance Brought Forward (balance before the 'from_date')
+    # Step 1: Calculate Balance Brought Forward (balance before the 'from_date')
     previous_balance = frappe.db.sql("""
         SELECT 
             SUM(gle.debit - gle.credit) AS balance
@@ -20,6 +19,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
             AND gle.party = %s
             AND gle.posting_date < %s
             AND gle.docstatus = 1
+            AND gle.is_cancelled = 0  -- Exclude cancelled entries
     """, (customer, from_date), as_dict=True)
     
     if previous_balance and previous_balance[0].balance:
@@ -28,7 +28,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
     # Initialize running balance with balance brought forward
     running_balance = balance_brought_forward
 
-    # Step 1: Fetch Sales Invoices and their items for the specified customer and date range
+    # Step 2: Fetch Sales Invoices and their items for the specified customer and date range
     invoices = frappe.db.sql("""
         SELECT 
             si.name AS invoice_name,
@@ -58,7 +58,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
         
         invoice_data = {
             "invoice_name": invoice.invoice_name,
-            "cost_center":invoice.cost_center,
+            "cost_center": invoice.cost_center,
             "sales_app_id": invoice.sales_app_id,
             "credit_sales_id": invoice.credit_sales_id,
             "posting_date": invoice.posting_date,  # Add posting date to the invoice data
@@ -72,7 +72,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
         
         sales_invoice_data.append(invoice_data)
 
-    # Step 2: Fetch Payment Entries within the specified date range for the same customer
+    # Step 3: Fetch Payment Entries within the specified date range for the same customer
     payments = frappe.db.sql("""
         SELECT 
             pe.name AS payment_entry_name, 
@@ -99,7 +99,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
             "paid_amount": payment.paid_amount
         })
 
-    # Step 3: Fetch GL Entries for the customer where voucher type is Journal Entry
+    # Step 4: Fetch GL Entries for the customer where voucher type is Journal Entry
     gl_entries = frappe.db.sql("""
         SELECT
             gle.name AS gl_entry_name,
@@ -117,6 +117,7 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
             AND gle.voucher_type = 'Journal Entry'
             AND gle.posting_date BETWEEN %s AND %s
             AND gle.docstatus = 1
+            AND gle.is_cancelled = 0  -- Exclude cancelled entries
     """, (customer, from_date, to_date), as_dict=True)
 
     filtered_gl_entries = []
@@ -136,9 +137,10 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
         running_balance -= flt(gl_entry.credit)  # Subtract credit from running balance
         total_paid_amount += flt(gl_entry.credit)  # Add credit to total paid
 
-    # Calculate outstanding amount
+    # Step 5: Calculate outstanding amount
     outstanding_amount = grand_total_amount - total_paid_amount
 
+    # Return results
     return {
         "sales_invoice_data": sales_invoice_data,
         "balance_brought_forward": balance_brought_forward,  # Include the balance brought forward

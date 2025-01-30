@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 @frappe.whitelist(allow_guest=True)
 def create_gas_invoice(customer, items, include_payments=None, mode_of_payment=None):
     try:
-        # Get the current user
+        # Get the current user 
         current_user = frappe.session.user
 
         # Get permitted cost centers for the current user
