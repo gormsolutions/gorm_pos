@@ -174,9 +174,11 @@ app_license = "mit"
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "gormsolutions_mobile_app.event.get_events"
-# }
+override_whitelisted_methods = {
+	# "frappe.desk.doctype.event.event.get_events": "gormsolutions_mobile_app.event.get_events"
+    "frappe.desk.doctype.item.item.create_item": "gormsolutions_mobile_app.custom_api.web_socket.item.create_item"
+
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
