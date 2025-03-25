@@ -1,10 +1,14 @@
 import frappe
 from erpnext.stock.utils import get_stock_balance
 
+import frappe
+from erpnext.stock.utils import get_stock_balance
+
 @frappe.whitelist()
 def get_item_details(limit, offset, search=None, user=None):
     """
-    Fetch item details based on filters, user permissions, and stock information.
+    Fetch item details based on filters, user permissions, stock, and UOM information.
+    Also includes all UOMs of each item with their related prices.
 
     Args:
         limit (int): Number of items to fetch.
@@ -13,18 +17,20 @@ def get_item_details(limit, offset, search=None, user=None):
         user (str, optional): User for fetching POS Profile.
 
     Returns:
-        list: List of item details with stock and price information.
+        list: List of item details enriched with stock, price, and UOM information.
     """
     current_user = frappe.session.user
-    # default_warehouse = None
 
-    # Fetch default warehouse exclusively from User Permissions
+    # Fetch default warehouse from User Permissions
     user_permissions = frappe.get_all(
         "User Permission",
         filters={"user": current_user, "allow": "Warehouse"},
         fields=["for_value"]
     )
-    default_warehouse = [perm["for_value"] for perm in user_permissions]
+    default_warehouses = [perm["for_value"] for perm in user_permissions]
+
+    # Use the first warehouse if multiple exist
+    default_warehouse = default_warehouses[0] if default_warehouses else None
 
     if not default_warehouse:
         frappe.throw("Default warehouse not found. Please set it in User Permissions.")
@@ -62,27 +68,65 @@ def get_item_details(limit, offset, search=None, user=None):
     item_details = frappe.get_all(
         "Item",
         filters=filters,
-        fields=["item_code", "item_name", "description", "item_group", "stock_uom"],
+        fields=["item_code", "item_name", "description", "item_group", "image", "stock_uom"],
         start=offset,
         page_length=limit,
     )
 
-    # Enrich item details with stock and price information
+    # Enrich item details with stock, price, and UOM information
     for item in item_details:
-        item["stock"] = get_stock_balance(item["item_code"], default_warehouse)
-        item["price"] = frappe.get_value(
+        # Get stock balance
+        item["stock"] = get_stock_balance(item["item_code"], default_warehouse) or 0
+
+        # Build UOM details: default stock UOM and additional conversion details
+        uom_details = [{
+            "uom": item["stock_uom"],
+            "conversion_factor": 1,
+            "price": 0.00  # We will fill the price later
+        }]
+
+        # Fetch conversion details for additional UOMs and get the price from Item Price table
+        conversion_details = frappe.get_all(
+            "UOM Conversion Detail",
+            filters={"parent": item["item_code"]},
+            fields=["uom", "conversion_factor"]
+        )
+
+        # Loop through conversion details to get the price for each UOM
+        for conv in conversion_details:
+            if conv["uom"] != item["stock_uom"]:
+                # Fetch price for the converted UOM from Item Price table
+                price = frappe.get_value(
+                    "Item Price",
+                    {"item_code": item["item_code"], "selling": 1, "uom": conv["uom"]},
+                    "price_list_rate",
+                ) or 0.00
+                uom_details.append({
+                    "uom": conv["uom"],
+                    "conversion_factor": conv.get("conversion_factor", 1),
+                    "price": price
+                })
+
+        # Now set price for stock UOM
+        stock_uom_price = frappe.get_value(
             "Item Price",
-            {"item_code": item["item_code"], "selling": 1},
+            {"item_code": item["item_code"], "selling": 1, "uom": item["stock_uom"]},
             "price_list_rate",
         ) or 0.00
 
+        # Update the default UOM price
+        uom_details[0]["price"] = stock_uom_price
+        item["price"] = stock_uom_price  # Set the default price for the item
+
+        item["uom_details"] = uom_details
+
         # Fetch stock in other warehouses if permitted
-        if frappe.has_permission("Bin", ptype="read", throw=False):
+        if frappe.has_permission("Bin", "read", throw=False):
             warehouse_stock = frappe.get_all(
                 "Bin",
                 filters=[
                     ["item_code", "=", item["item_code"]],
-                    ["warehouse", "!=", default_warehouse],
+                    ["warehouse", "not in", default_warehouses],  # Fixed warehouse filter
                 ],
                 fields=["warehouse", "actual_qty"],
             )
@@ -92,7 +136,6 @@ def get_item_details(limit, offset, search=None, user=None):
             ]
 
     return item_details
-
 
 @frappe.whitelist(allow_guest = True)
 def get_item_details_offline(limit=None,offset=None,search=None):

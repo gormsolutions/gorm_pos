@@ -74,3 +74,26 @@ def mode_of_payment():
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Mode of Payment Error")
         return {"error": str(e)}
+
+@frappe.whitelist()
+def recieve_payment(mode_of_payment, paid_amount, party):
+    try:
+        mode_of_pay_doc = frappe.get_doc("Mode of Payment", mode_of_payment)
+        
+        payment_doc = frappe.get_doc({
+            "doctype": "Payment Entry",
+            "payment_type": "Receive",
+            "party_type": "Customer",
+            "party": party,
+            "mode_of_payment": mode_of_payment,
+            "paid_to": mode_of_pay_doc.accounts[0].default_account,
+            "paid_amount": paid_amount,
+            "received_amount": paid_amount
+        })
+        
+        res_doc = payment_doc.insert(ignore_permissions=True)
+        res_doc.submit()
+
+        return {"status": "Success", "message": "Payment received successfully", "paid_amount": res_doc.paid_amount}
+    except Exception as e:
+        return {"status": "Error", "message": str(e)}
