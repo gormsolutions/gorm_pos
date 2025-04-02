@@ -33,7 +33,7 @@ def fetch_sales_by_date_range(start_date, end_date):
             items = frappe.get_all(
                 "Sales Invoice Item",
                 filters={"parent": invoice["name"]},
-                fields=["item_code", "item_name", "qty", "rate", "amount"]
+                fields=["item_code", "item_name", "qty", "rate", "amount","uom"]
             )
             invoice["items"] = items  # Add items to the invoice
 

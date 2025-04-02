@@ -72,6 +72,7 @@ def get_party_outstandings_with_items_and_company(from_date=None, to_date=None, 
             sii.item_code,
             sii.item_name,
             sii.qty,
+            sii.uom,
             sii.rate
         FROM `tabSales Invoice Item` sii
     """, as_dict=True)
@@ -83,6 +84,7 @@ def get_party_outstandings_with_items_and_company(from_date=None, to_date=None, 
             pii.item_code,
             pii.item_name,
             pii.qty,
+            pii.uom,
             pii.rate
         FROM `tabPurchase Invoice Item` pii
     """, as_dict=True)
@@ -165,8 +167,10 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
             si.name AS invoice_name,
             si.posting_date,
             si.cost_center, 
+            si.status, 
             sii.item_code, 
             sii.qty, 
+            sii.uom,
             sii.rate, 
             sii.amount
         FROM 
@@ -189,8 +193,10 @@ def get_sales_invoice_details_and_payments(customer, from_date, to_date):
             "cost_center":invoice.cost_center,
             "posting_date": invoice.posting_date,  # Add posting date to the invoice data
             "item_code": invoice.item_code,
+            "status": invoice.status,
             "qty": flt(invoice.qty),
             "rate": flt(invoice.rate),
+            "uom": invoice.uom,
             "amount": total_amount,
             "running_balance": running_balance  # Include running balance for each invoice
         }
@@ -308,7 +314,9 @@ def supplier_details_and_payments(supplier, from_date, to_date):
             si.name AS invoice_name,
             si.posting_date,
             si.cost_center, 
-            sii.item_code, 
+            si.status, 
+            sii.item_code,
+            sii.uom, 
             sii.qty, 
             sii.rate, 
             sii.amount
@@ -332,6 +340,8 @@ def supplier_details_and_payments(supplier, from_date, to_date):
             "cost_center":invoice.cost_center,
             "posting_date": invoice.posting_date,  # Add posting date to the invoice data
             "item_code": invoice.item_code,
+            "status": invoice.status,
+            "uom": invoice.uom,
             "qty": flt(invoice.qty),
             "rate": flt(invoice.rate),
             "amount": total_amount,
