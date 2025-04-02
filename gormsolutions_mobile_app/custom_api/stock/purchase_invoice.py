@@ -1,62 +1,76 @@
 import frappe
 
 @frappe.whitelist()
-def create_purchase_invoice(supplier, items, posting_date=None, due_date=None, company=None, payments=None):
+def submit_purchase_invoice_and_pay(invoice_name, payments=None):
     """
-    Create a Purchase Invoice in Frappe and optionally create partial Payment Entries.
-    :param supplier: The supplier for the purchase invoice.
-    :param items: A list of dictionaries containing item details (item_code, qty, rate).
-    :param posting_date: The posting date of the invoice (optional).
-    :param due_date: The due date for payment (optional).
-    :param company: The company for which the invoice is created (optional).
-    :param payments: A list of dictionaries specifying partial payments (amount, payment_account).
+    Submit an existing draft Purchase Invoice or collect payments if already submitted.
+    :param invoice_name: The name of the Purchase Invoice.
+    :param payments: A list of dictionaries specifying payments (amount and mode_of_payment).
     :return: A success message or error details.
     """
     try:
-        # Create a new Purchase Invoice document
-        purchase_invoice = frappe.get_doc({
-            "doctype": "Purchase Invoice",
-            "supplier": supplier,
-            "posting_date": posting_date or frappe.utils.nowdate(),
-            "due_date": due_date or frappe.utils.add_days(frappe.utils.nowdate(), 30),  # Default due date is 30 days from posting date
-            "company": company or frappe.defaults.get_user_default("Company"),
-            "items": [
-                {
-                    "item_code": item["item_code"],
-                    "qty": item["qty"],
-                    "uom": item.get("uom"),  # Default UOM is 'Nos'
-                    "rate": item["rate"]
-                } for item in items
-            ]
-        })
+        # Fetch the Purchase Invoice
+        purchase_invoice = frappe.get_doc("Purchase Invoice", invoice_name)
 
-        # Insert the document into the database
-        purchase_invoice.insert()
-        # Submit the document
-        purchase_invoice.submit()
+        # Check if the invoice is already submitted
+        if purchase_invoice.docstatus == 0:
+            # Submit the Purchase Invoice if it is in draft state
+            purchase_invoice.submit()
 
-        # Handle partial payments if provided
+        # Handle payments if provided
         payment_entries = []
         if payments:
             for payment in payments:
-                if not payment.get("amount") or not payment.get("payment_account"):
+                if not payment.get("amount") or not payment.get("mode_of_payment"):
                     return {
                         "status": "error",
-                        "message": "Each payment must include 'amount' and 'payment_account'."
+                        "message": "Each payment must include 'amount' and 'mode_of_payment'."
                     }
+
+                # Fetch the Mode of Payment and its default account
+                mode_of_payment_doc = frappe.get_doc("Mode of Payment", payment["mode_of_payment"])
+                if not mode_of_payment_doc.accounts:
+                    return {
+                        "status": "error",
+                        "message": f"Mode of Payment '{payment['mode_of_payment']}' does not have a default account configured."
+                    }
+
+                # Get the Paid From account and its currency
+                paid_from_account = mode_of_payment_doc.accounts[0].default_account
+                paid_from_account_currency = frappe.db.get_value("Account", paid_from_account, "account_currency")
+
+                # Fetch the company's default currency
+                company_currency = frappe.db.get_value("Company", purchase_invoice.company, "default_currency")
+                invoice_currency = purchase_invoice.currency
+
+                # Determine the exchange rate
+                exchange_rate = 1.0  # Default exchange rate for same currency
+                if invoice_currency != company_currency:
+                    exchange_rate = frappe.db.get_value(
+                        "Currency Exchange",
+                        {"from_currency": invoice_currency, "to_currency": company_currency},
+                        "exchange_rate"
+                    )
+                    if not exchange_rate:
+                        return {
+                            "status": "error",
+                            "message": f"Exchange rate not found for {invoice_currency} to {company_currency}."
+                        }
 
                 # Create a Payment Entry document
                 payment_entry = frappe.get_doc({
                     "doctype": "Payment Entry",
                     "payment_type": "Pay",
                     "party_type": "Supplier",
-                    "party": supplier,
-                    "posting_date": posting_date or frappe.utils.nowdate(),
-                    "company": company or frappe.defaults.get_user_default("Company"),
-                    "paid_from": payment["payment_account"],
-                    "paid_to": frappe.db.get_value("Company", company or frappe.defaults.get_user_default("Company"), "default_payable_account"),
+                    "party": purchase_invoice.supplier,
+                    "posting_date": frappe.utils.nowdate(),
+                    "company": purchase_invoice.company,
+                    "paid_from": paid_from_account,
+                    "paid_from_account_currency": paid_from_account_currency,
                     "paid_amount": payment["amount"],
-                    "received_amount": payment["amount"],
+                    "received_amount": payment["amount"] * exchange_rate,
+                    "source_exchange_rate": exchange_rate,
+                    "mode_of_payment": payment["mode_of_payment"],
                     "references": [
                         {
                             "reference_doctype": "Purchase Invoice",
@@ -75,29 +89,14 @@ def create_purchase_invoice(supplier, items, posting_date=None, due_date=None, c
 
         return {
             "status": "success",
-            "message": f"Purchase Invoice {purchase_invoice.name} created successfully.",
+            "message": f"Purchase Invoice {purchase_invoice.name} processed successfully.",
             "invoice_name": purchase_invoice.name,
             "payment_entries": payment_entries
         }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Error creating Purchase Invoice or Payment Entry")
+        frappe.log_error(frappe.get_traceback(), "Error processing Purchase Invoice or creating Payment Entry")
         return {
             "status": "error",
             "message": f"An error occurred: {str(e)}"
         }
-        
-        
-        
-#         {
-#     "supplier": "TEST SUPPLIER",
-#     "items": [
-#         {"item_code": "Test Item", "qty": 10, "rate": 50,"uom":"Nos"}
-#     ],
-#     "posting_date": "2025-04-01",
-#     "due_date": "2025-05-01",
-#     "payments": [
-#         {"amount": 500, "payment_account": "1310 - Cash accounts - SD"}
-
-#     ]
-# }
