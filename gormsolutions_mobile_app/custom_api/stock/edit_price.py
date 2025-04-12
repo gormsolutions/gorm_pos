@@ -47,3 +47,29 @@ def update_selling_price(item_code, uom, new_price):
             "status": "error",
             "message": f"An error occurred: {str(e)}"
         }
+    
+
+@frappe.whitelist()
+def fetch_all_uoms():
+    """
+    Fetch all UOMs (Units of Measure) from the UOM doctype.
+    :return: A list of all UOMs.
+    """
+    try:
+        # Fetch all UOMs
+        uoms = frappe.get_all(
+            "UOM",
+            fields=["name", "must_be_whole_number", "enabled"]
+        )
+
+        return {
+            "status": "success",
+            "uoms": uoms
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error fetching UOMs")
+        return {
+            "status": "error",
+            "message": f"An error occurred: {str(e)}"
+        }

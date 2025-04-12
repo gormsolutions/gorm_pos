@@ -3,7 +3,9 @@ import frappe
 @frappe.whitelist()
 def get_stock_qty(cost_center=None):
     """
-    Fetch stock quantities along with valuation rate, selling price, and UOM.
+    Fetch stock quantities along with the current buying price as the valuation rate,
+    and fallback to the valuation rate from the Bin table if no buying price exists.
+    Ensure the buying price is fetched only if the stock_uom matches the uom in the Item Price.
     Optionally filter by cost center and restrict to the warehouse 'Main Store Kumi Road - SD'.
     """
     # Base query
@@ -11,12 +13,23 @@ def get_stock_qty(cost_center=None):
         SELECT 
             bin.item_code, 
             bin.actual_qty,
-            bin.valuation_rate,
+            COALESCE(
+                (SELECT price_list_rate
+                 FROM `tabItem Price` 
+                 WHERE `tabItem Price`.item_code = bin.item_code 
+                 AND `tabItem Price`.price_list = 'Standard Buying'
+                 AND `tabItem Price`.uom = item.stock_uom  -- Ensure stock_uom matches uom in Item Price
+                 ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+                 LIMIT 1),
+                bin.valuation_rate  -- Fallback to valuation_rate from Bin if no buying price exists
+            ) AS valuation_rate,  -- Use buying price if available, otherwise fallback to Bin valuation_rate
             (SELECT price_list_rate
              FROM `tabItem Price` 
              WHERE `tabItem Price`.item_code = bin.item_code 
-             AND `tabItem Price`.price_list = 'Standard Selling' 
-             LIMIT 1) AS selling_price,
+             AND `tabItem Price`.price_list = 'Standard Selling'
+             AND `tabItem Price`.uom = item.stock_uom  -- Ensure stock_uom matches uom in Item Price
+             ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+             LIMIT 1) AS selling_price,  -- Fetch the Standard Selling price
             item.stock_uom AS uom
         FROM 
             `tabBin` AS bin
