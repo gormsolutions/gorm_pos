@@ -179,3 +179,126 @@ def get_item_warehouse_offline(limit=None,offset=None,search=None):
     default_warehouse = [perm["for_value"] for perm in user_permissions]
     
     return user_permissions
+
+@frappe.whitelist()
+def get_item_details_barcodes(limit, offset, search=None, user=None):
+    """
+    Fetch item details based on filters, user permissions, stock, UOM, price,
+    batch/serial number, and barcode information.
+
+    Args:
+        limit (int): Number of items to fetch.
+        offset (int): Offset for pagination.
+        search (str, optional): Search keyword for item name.
+        user (str, optional): User for fetching POS Profile.
+
+    Returns:
+        list: List of item details enriched with stock, price, UOM, barcode, and batch/serial info.
+    """
+    current_user = frappe.session.user
+
+    # Fetch default warehouse from User Permissions
+    user_permissions = frappe.get_all(
+        "User Permission",
+        filters={"user": current_user, "allow": "Warehouse"},
+        fields=["for_value"]
+    )
+    default_warehouses = [perm["for_value"] for perm in user_permissions]
+    default_warehouse = default_warehouses[0] if default_warehouses else None
+
+    if not default_warehouse:
+        frappe.throw("Default warehouse not found. Please set it in User Permissions.")
+
+    # Fetch allowed item groups
+    allowed_item_groups = frappe.get_all(
+        "User Permission",
+        filters={"user": current_user, "allow": "Item Group"},
+        fields=["for_value"]
+    )
+    allowed_group_names = [group["for_value"] for group in allowed_item_groups]
+
+    item_groups_to_filter = allowed_group_names[:]
+    if allowed_group_names:
+        child_groups = frappe.get_all(
+            "Item Group",
+            filters={"parent_item_group": ["in", allowed_group_names]},
+            fields=["name"]
+        )
+        item_groups_to_filter.extend([group["name"] for group in child_groups])
+
+    # Prepare filters
+    filters = [
+        ["disabled", "=", 0],
+        ["is_sales_item", "=", 1],
+        ["is_stock_item", "=", 1],
+    ]
+    if search:
+        filters.append(["item_name", "like", f"%{search}%"])
+    if item_groups_to_filter:
+        filters.append(["item_group", "in", item_groups_to_filter])
+
+    # Fetch items
+    item_details = frappe.get_all(
+        "Item",
+        filters=filters,
+        fields=["item_code", "item_name", "description", "item_group", "image", "stock_uom", "has_batch_no", "has_serial_no"],
+        start=offset,
+        page_length=limit,
+    )
+
+    for item in item_details:
+        # Stock balance
+        item["stock"] = get_stock_balance(item["item_code"], default_warehouse) or 0
+
+        # Price
+        price = frappe.db.get_value("Item Price", {
+            "item_code": item["item_code"],
+            "selling": 1,
+            "price_list": "Standard Selling"
+        }, "price_list_rate")
+        item["price"] = price or 0
+
+        # UOMs
+        item["uoms"] = frappe.get_all(
+            "UOM Conversion Detail",
+            filters={"parent": item["item_code"]},
+            fields=["uom", "conversion_factor"]
+        )
+
+        # Barcodes
+        barcodes = frappe.get_all(
+            "Item Barcode",
+            fields=["barcode", "uom"],
+            filters={"parent": item["item_code"]}
+        )
+        item["barcode"] = barcodes[0]["barcode"] if barcodes else ""
+
+        # Batch numbers (if applicable)
+        if item.get("has_batch_no"):
+            item["batches"] = frappe.get_all(
+                "Batch",
+                filters={
+                    "item": item["item_code"],
+                    "warehouse": default_warehouse,
+                    "disabled": 0
+                },
+                fields=["name", "batch_id", "expiry_date"]
+            )
+        else:
+            item["batches"] = []
+
+        # Serial numbers (if applicable)
+        if item.get("has_serial_no"):
+            item["serial_nos"] = frappe.get_all(
+                "Serial No",
+                filters={
+                    "item_code": item["item_code"],
+                    "warehouse": default_warehouse,
+                    "status": "Active"
+                },
+                fields=["name", "serial_no"]
+            )
+        else:
+            item["serial_nos"] = []
+
+    return item_details

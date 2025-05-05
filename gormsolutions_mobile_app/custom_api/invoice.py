@@ -48,26 +48,6 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
     # Get the current user
     current_user = frappe.session.user
 
-    # Fetch User Permission records for 'Mode of Payment' allowed for the current user
-    # permitted_modes_of_payment = frappe.get_all(
-    #     'User Permission',
-    #     filters={
-    #         'user': current_user,
-    #         'allow': 'Mode of Payment'
-    #     },
-    #     fields=['for_value']
-    # )
-
-    # # Extract the list of permitted mode of payment names
-    # permitted_modes_of_payment = [entry['for_value'] for entry in permitted_modes_of_payment]
-
-    # # Check if there are permitted modes of payment
-    # if not permitted_modes_of_payment:
-    #     return {"error": f"No modes of payment are permitted for user '{current_user}'."}
-
-    # # Determine the mode of payment to use (use the first permitted mode for simplicity)
-    # mode_of_payment = permitted_modes_of_payment[0]
-
     # Fetch User Permission records for 'Warehouse' allowed for the current user
     fallback_warehouse = frappe.get_all(
         'User Permission',
@@ -127,6 +107,81 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
             invoice_doc_data["pos_profile"] = pos_profile
 
         # Create and submit the invoice
+        invoice_doc = frappe.get_doc(invoice_doc_data)
+        res_doc = invoice_doc.insert(ignore_permissions=True)
+        res_doc.submit()
+        return res_doc
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@frappe.whitelist()
+def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_payment=None, reference_no=None, user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0, payments=None):
+    import json
+
+    if isinstance(items, str):
+        items = json.loads(items)
+
+    if payments and isinstance(payments, str):
+        payments = json.loads(payments)
+
+    current_user = frappe.session.user
+
+    fallback_warehouse = frappe.get_all(
+        'User Permission',
+        filters={
+            'user': current_user,
+            'allow': 'Warehouse',
+            "is_default": 0
+        },
+        fields=['for_value']
+    )
+
+    fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
+
+    if not fallback_warehouse:
+        fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+        if not fallback_warehouse:
+            return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
+
+    pos_profile = None
+    pos_warehouse = None
+
+    if user and is_pos:
+        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
+        pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+
+    if is_pos or update_stock:
+        for item in items:
+            item['warehouse'] = pos_warehouse or fallback_warehouse
+        update_stock = 1
+
+    try:
+        invoice_doc_data = {
+            "doctype": "Sales Invoice",
+            "customer": customer_name,
+            "remarks": remarks,
+            "update_stock": update_stock,
+            "is_pos": is_pos,
+            "items": items,
+            "discount_amount": discount_amount,
+            "additional_discount_percentage": discount_percentage,
+            "apply_discount_on": "Grand Total"
+        }
+
+        if is_pos:
+            invoice_doc_data["pos_profile"] = pos_profile
+
+        # ✅ Payments section
+        if payments:
+            invoice_doc_data["payments"] = payments
+        else:
+            invoice_doc_data["payments"] = [{
+                "mode_of_payment": mode_of_payment,
+                "amount": paid_amount,
+                "reference_no": reference_no
+            }]
+
         invoice_doc = frappe.get_doc(invoice_doc_data)
         res_doc = invoice_doc.insert(ignore_permissions=True)
         res_doc.submit()
