@@ -116,7 +116,11 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
         return {"error": str(e)}
 
 @frappe.whitelist()
-def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_payment=None, reference_no=None, user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0, payments=None):
+def create_invoices(customer_name, paid_amount, items, remarks=None, 
+                    mode_of_payment=None, reference_no=None, user=None, 
+                    is_pos=None, update_stock=None, discount_amount=0, 
+                    discount_percentage=0, payments=None):
+    
     import json
 
     if isinstance(items, str):
@@ -171,16 +175,19 @@ def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_pay
 
         if is_pos:
             invoice_doc_data["pos_profile"] = pos_profile
+            invoice_doc_data["paid_amount"] = paid_amount
+            invoice_doc_data["payments"] = []
 
-        # ✅ Payments section
-        if payments:
-            invoice_doc_data["payments"] = payments
-        else:
-            invoice_doc_data["payments"] = [{
-                "mode_of_payment": mode_of_payment,
-                "amount": paid_amount,
-                "reference_no": reference_no
-            }]
+            if payments:
+                for payment in payments:
+                    if not frappe.db.exists("Mode of Payment", payment.get("mode_of_payment")):
+                        frappe.throw(f"Mode of Payment '{payment.get('mode_of_payment')}' does not exist.")
+                    
+                    invoice_doc_data["payments"].append({
+                        "mode_of_payment": payment.get("mode_of_payment"),
+                        "amount": payment.get("amount", 0),
+                        "reference_no": payment.get("reference_no")
+                    })
 
         invoice_doc = frappe.get_doc(invoice_doc_data)
         res_doc = invoice_doc.insert(ignore_permissions=True)
@@ -190,7 +197,10 @@ def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_pay
     except Exception as e:
         return {"error": str(e)}
 
+
 @frappe.whitelist()
+
+
 def get_sales_payment_summary(start_date, end_date):
     try:
         # Get the logged-in user's full name

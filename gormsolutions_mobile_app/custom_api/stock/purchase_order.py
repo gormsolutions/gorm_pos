@@ -158,3 +158,34 @@ def create_purchase_order_invoice_and_payment(supplier, items, transaction_date=
             "status": "error",
             "message": f"An error occurred: {str(e)}"
         }
+       
+
+
+import frappe
+from frappe.model.document import Document
+from frappe import _
+
+@frappe.whitelist(allow_guest=False)
+def create_purchase_invoice(supplier, items_json, posting_date=None, due_date=None):
+    import json
+    try:
+        items = json.loads(items_json)  # items_json should be a stringified JSON array
+        pi = frappe.new_doc("Purchase Invoice")
+        pi.supplier = supplier
+        pi.posting_date = posting_date or frappe.utils.today()
+        pi.due_date = due_date or frappe.utils.add_days(pi.posting_date, 7)
+
+        for item in items:
+            pi.append("items", {
+                "item_code": item["item_code"],
+                "qty": item["qty"],
+                "rate": item["rate"]
+            })
+
+        pi.insert()
+        pi.submit()
+
+        return {"status": "success", "name": pi.name}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Purchase Invoice API Error")
+        return {"status": "error", "message": str(e)}

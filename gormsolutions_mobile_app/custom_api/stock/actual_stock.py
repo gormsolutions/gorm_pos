@@ -128,3 +128,59 @@ def get_user_doc():
             "status": "error",
             "message": f"An error occurred: {str(e)}"
         }
+
+@frappe.whitelist()
+def get_stock_qty_roots(cost_center=None):
+    """
+    Fetch stock quantities along with the current buying price as the valuation rate,
+    and fallback to the valuation rate from the Bin table if no buying price exists.
+    Ensure the buying price is fetched only if the stock_uom matches the uom in the Item Price.
+    Optionally filter by cost center and restrict to the warehouse 'Stores - RL'.
+    Only include items where custom_on_selling_pos = 1.
+    """
+    # Base query
+    query = """
+        SELECT 
+            bin.item_code, 
+            bin.actual_qty,
+            COALESCE(
+                (SELECT price_list_rate
+                 FROM `tabItem Price` 
+                 WHERE `tabItem Price`.item_code = bin.item_code 
+                 AND `tabItem Price`.price_list = 'Standard Buying'
+                 AND `tabItem Price`.uom = item.stock_uom
+                 ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+                 LIMIT 1),
+                bin.valuation_rate
+            ) AS valuation_rate,
+            (SELECT price_list_rate
+             FROM `tabItem Price` 
+             WHERE `tabItem Price`.item_code = bin.item_code 
+             AND `tabItem Price`.price_list = 'Standard Selling'
+             AND `tabItem Price`.uom = item.stock_uom
+             ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+             LIMIT 1) AS selling_price,
+            item.stock_uom AS uom
+        FROM 
+            `tabBin` AS bin
+        JOIN 
+            `tabItem` AS item ON bin.item_code = item.name
+        JOIN 
+            `tabWarehouse` AS warehouse ON bin.warehouse = warehouse.name
+        WHERE 
+            warehouse.name = %s
+            AND item.custom_on_selling_pos = 1
+    """
+
+    # Parameters for the query
+    params = ["Stores - RL"]
+
+    # Add an optional filter for cost_center if provided
+    if cost_center:
+        query += " AND warehouse.custom_cost_centre = %s"
+        params.append(cost_center)
+
+    # Execute the query
+    stock_qty = frappe.db.sql(query, params, as_dict=True)
+    
+    return stock_qty
