@@ -1,0 +1,85 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"Yri2FRyUEY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"p4GnhqJws0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"0fhSfE6EIB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"35oTGAmZ_C\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}}]",
+ "creation": "2025-05-08 21:16:40.449436",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "idx": 0,
+ "indicator_color": "purple",
+ "is_hidden": 0,
+ "label": "GORM POS",
+ "links": [],
+ "modified": "2025-05-09 11:38:25.737557",
+ "modified_by": "salespointone@pos.com",
+ "module": "Gormsolutions Mobile App",
+ "name": "GORM POS",
+ "number_cards": [],
+ "owner": "salespointone@pos.com",
+ "parent_page": "Home",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 39.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Pos Opening Entry",
+   "link_to": "POS Opening Entry",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Loyalty Program",
+   "link_to": "Loyalty Program",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Purchase Return Management",
+   "link_to": "Purchase Return Management",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Pos Closing Shift",
+   "link_to": "POS Closing Shift",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Transaction Accounts",
+   "link_to": "Transaction Accounts",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "User Financial Report",
+   "link_to": "User Financial Report",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Branch Expenses",
+   "link_to": "Branch Expenses",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "GORM POS"
+}

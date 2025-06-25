@@ -143,9 +143,9 @@ doc_events = {
 	# 	"on_cancel": "method",
 	# 	"on_trash": "method"
 	# }
-    "Item": {
-        "validate": "gormsolutions_mobile_app.custom_api.disable.update_item_price"
-    }
+	"Sales Invoice": {
+		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname"
+	}
 }
 
 # Scheduled Tasks

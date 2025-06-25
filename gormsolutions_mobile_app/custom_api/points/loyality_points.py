@@ -1,41 +1,17 @@
 import frappe
-
-import frappe
 from frappe.utils import today
 from frappe import _
 
-@frappe.whitelist(allow_guest=True)
-def get_customer_details(limit, offset, search=None):
-    if search:
-        filters = [
-            ['disabled', '=', 'No'],
-            ['customer_name', 'like', '%' + search + '%']
-        ]
-    else:
-        filters = [['disabled', '=', 'No']]
+@frappe.whitelist()
+def get_loyalty_summary(customer):
+    if not customer:
+        return {"error": "Customer is required."}
 
-    customer_list = frappe.db.get_list(
-        'Customer',
-        filters=filters,
-        fields=['name', 'customer_name', 'mobile_no', 'email_id'],
-        start=offset,
-        page_length=limit
-    )
-
-    result = []
-
-    for customer in customer_list:
-        summary = get_loyalty_summary_internal(customer.name)
-        customer.update(summary)
-        result.append(customer)
-
-    return result
-
-def get_loyalty_summary_internal(customer):
     earned = 0
     redeemed = 0
     program = None
 
+    # Fetch all loyalty entries for customer that are not expired
     entries = frappe.get_all(
         "Loyalty Point Entry",
         filters={
@@ -51,11 +27,11 @@ def get_loyalty_summary_internal(customer):
         if points > 0:
             earned += points
         elif points < 0:
-            redeemed += points
+            redeemed += points  # note: negative values
         if not program and entry.loyalty_program:
             program = entry.loyalty_program
 
-    remaining = earned + redeemed
+    remaining = earned + redeemed  # redeemed is negative, so it's correct
 
     conversion_rate = 0
     redeemed_value = 0
@@ -68,6 +44,7 @@ def get_loyalty_summary_internal(customer):
         remaining_value = remaining * conversion_rate
 
     return {
+        "customer": customer,
         "loyalty_program": program,
         "earned_points": earned,
         "redeemed_points": abs(redeemed),
@@ -77,15 +54,20 @@ def get_loyalty_summary_internal(customer):
         "remaining_value": remaining_value
     }
 
-
 @frappe.whitelist(allow_guest=True)
-def create_customer(customer_name,mobile_no,email_id=None):
+def get_customer_details(limit,offset,search=None):
+    if search:
+        filters=[
+        ['disabled','=','No'] ,
+        ['customer_name','like','%'+search+'%']]
+    else:
+        filters=[
+        ['disabled','=','No']]
 
-    doc = frappe.new_doc('Customer')
-    doc.customer_name = customer_name
-    doc.mobile_no = mobile_no
-    if email_id:
-        doc.email_id = email_id
-    doc.insert()
-
-    return doc.name
+    customer_details = frappe.db.get_list('Customer',
+    filters = filters,
+    fields=['name','customer_name', 'mobile_no','email_id'],
+    
+    start=offset,
+    page_length=limit
+    )

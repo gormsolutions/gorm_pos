@@ -115,91 +115,83 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
     except Exception as e:
         return {"error": str(e)}
 
-@frappe.whitelist()
-def create_invoices(customer_name, paid_amount, items, remarks=None, 
-                    mode_of_payment=None, reference_no=None, user=None, 
-                    is_pos=None, update_stock=None, discount_amount=0, 
-                    discount_percentage=0, payments=None):
-    
-    import json
+# @frappe.whitelist()
+# def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_payment=None, reference_no=None, user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0, payments=None):
+#     import json
 
-    if isinstance(items, str):
-        items = json.loads(items)
+#     if isinstance(items, str):
+#         items = json.loads(items)
 
-    if payments and isinstance(payments, str):
-        payments = json.loads(payments)
+#     if payments and isinstance(payments, str):
+#         payments = json.loads(payments)
 
-    current_user = frappe.session.user
+#     current_user = frappe.session.user
 
-    fallback_warehouse = frappe.get_all(
-        'User Permission',
-        filters={
-            'user': current_user,
-            'allow': 'Warehouse',
-            "is_default": 0
-        },
-        fields=['for_value']
-    )
+#     fallback_warehouse = frappe.get_all(
+#         'User Permission',
+#         filters={
+#             'user': current_user,
+#             'allow': 'Warehouse',
+#             "is_default": 0
+#         },
+#         fields=['for_value']
+#     )
 
-    fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
+#     fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
 
-    if not fallback_warehouse:
-        fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
-        if not fallback_warehouse:
-            return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
+#     if not fallback_warehouse:
+#         fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+#         if not fallback_warehouse:
+#             return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
 
-    pos_profile = None
-    pos_warehouse = None
+#     pos_profile = None
+#     pos_warehouse = None
 
-    if user and is_pos:
-        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
-        pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+#     if user and is_pos:
+#         pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
+#         pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
 
-    if is_pos or update_stock:
-        for item in items:
-            item['warehouse'] = pos_warehouse or fallback_warehouse
-        update_stock = 1
+#     if is_pos or update_stock:
+#         for item in items:
+#             item['warehouse'] = pos_warehouse or fallback_warehouse
+#         update_stock = 1
 
-    try:
-        invoice_doc_data = {
-            "doctype": "Sales Invoice",
-            "customer": customer_name,
-            "remarks": remarks,
-            "update_stock": update_stock,
-            "is_pos": is_pos,
-            "items": items,
-            "discount_amount": discount_amount,
-            "additional_discount_percentage": discount_percentage,
-            "apply_discount_on": "Grand Total"
-        }
+#     try:
+#         invoice_doc_data = {
+#             "doctype": "Sales Invoice",
+#             "customer": customer_name,
+#             "remarks": remarks,
+#             "update_stock": update_stock,
+#             "is_pos": is_pos,
+#             "items": items,
+#             "discount_amount": discount_amount,
+#             "additional_discount_percentage": discount_percentage,
+#             "apply_discount_on": "Grand Total"
+#         }
 
-        if is_pos:
-            invoice_doc_data["pos_profile"] = pos_profile
-            invoice_doc_data["paid_amount"] = paid_amount
-            invoice_doc_data["payments"] = []
+#         if is_pos:
+#             invoice_doc_data["pos_profile"] = pos_profile
 
-            if payments:
-                for payment in payments:
-                    if not frappe.db.exists("Mode of Payment", payment.get("mode_of_payment")):
-                        frappe.throw(f"Mode of Payment '{payment.get('mode_of_payment')}' does not exist.")
-                    
-                    invoice_doc_data["payments"].append({
-                        "mode_of_payment": payment.get("mode_of_payment"),
-                        "amount": payment.get("amount", 0),
-                        "reference_no": payment.get("reference_no")
-                    })
+#         # ✅ Payments section
+#         if payments:
+#             invoice_doc_data["payments"] = payments
+#         else:
+#             invoice_doc_data["payments"] = [{
+#                 "mode_of_payment": mode_of_payment,
+#                 "amount": paid_amount,
+#                 "reference_no": reference_no
+#             }]
 
-        invoice_doc = frappe.get_doc(invoice_doc_data)
-        res_doc = invoice_doc.insert(ignore_permissions=True)
-        res_doc.submit()
-        return res_doc
+#         invoice_doc = frappe.get_doc(invoice_doc_data)
+#         res_doc = invoice_doc.insert(ignore_permissions=True)
+#         res_doc.submit()
+#         return res_doc
 
-    except Exception as e:
-        return {"error": str(e)}
+#     except Exception as e:
+#         return {"error": str(e)}
 
 
 @frappe.whitelist()
-
 
 def get_sales_payment_summary(start_date, end_date):
     try:

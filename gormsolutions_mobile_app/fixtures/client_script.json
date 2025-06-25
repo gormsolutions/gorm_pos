@@ -1,1 +1,35 @@
-[]
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Order",
+  "enabled": 1,
+  "modified": "2025-05-07 17:01:12.479959",
+  "module": "Gormsolutions Mobile App",
+  "name": "Expense acc",
+  "script": "frappe.ui.form.on('Purchase Order', {\r\n    refresh: function(frm) {\r\n        var company = frm.doc.company;\r\n\r\n        frappe.call({\r\n            method: 'frappe.client.get_list',\r\n            args: {\r\n                doctype: 'Account',\r\n                filters: { company: company, account_name: ['like', \"Stock Received But Not Billed\"] },\r\n                limit: 1\r\n            },\r\n            callback: function(response) {\r\n                if (response.message && response.message.length > 0) {\r\n                    frm.set_query('custom_expense_account', function() {\r\n                        return {\r\n                            filters: {\r\n                                company: company,\r\n                                account_name: ['like', \"Stock Received But Not Billed\"]\r\n                            }\r\n                        };\r\n                    });\r\n                    var firstAccount = response.message[0];\r\n                    frm.set_value('custom_expense_account', firstAccount.name);\r\n                    frm.refresh_field('custom_expense_account');\r\n\r\n                    // Set expense_account in child table\r\n                    frm.doc.items.forEach(function(item) {\r\n                        frappe.model.set_value(item.doctype, item.name, 'expense_account', firstAccount.name);\r\n                    });\r\n                    frm.refresh_field('items');\r\n                }\r\n            }\r\n        });\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Receipt",
+  "enabled": 1,
+  "modified": "2025-05-07 17:23:57.995005",
+  "module": "Gormsolutions Mobile App",
+  "name": "cost center",
+  "script": "// On item selection, set cost_center for that specific row\r\nfrappe.ui.form.on('Purchase Receipt Item', {\r\n    item_code: function (frm, cdt, cdn) {\r\n        setCostcenterForRow(frm, cdt, cdn);\r\n    }\r\n});\r\n\r\n// On form refresh, set cost_center for all rows\r\nfrappe.ui.form.on('Purchase Receipt', {\r\n    refresh: function (frm) {\r\n        setCostcenterForAll(frm);\r\n    }\r\n});\r\n\r\n// Set cost_center for a single row\r\nfunction setCostcenterForRow(frm, cdt, cdn) {\r\n    let row = locals[cdt][cdn];\r\n    let station = frm.doc.cost_center;\r\n\r\n    if (station) {\r\n        frappe.model.set_value(cdt, cdn, 'cost_center', station);\r\n        frm.refresh_field('items');\r\n    } else {\r\n        frappe.msgprint(\"Please set the Cost Center first.\");\r\n    }\r\n}\r\n\r\n// Set cost_center for all rows\r\nfunction setCostcenterForAll(frm) {\r\n    let station = frm.doc.cost_center;\r\n\r\n    if (station && frm.doc.items) {\r\n        frm.doc.items.forEach(function (item) {\r\n            item.cost_center = station;\r\n        });\r\n        frm.refresh_field('items');\r\n    }\r\n}\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Invoice",
+  "enabled": 1,
+  "modified": "2025-05-08 01:02:59.349248",
+  "module": "Gormsolutions Mobile App",
+  "name": "Points",
+  "script": "frappe.ui.form.on('Sales Invoice', {\r\n  loyalty_points: function(frm) {\r\n    if (!frm.doc.customer) return;\r\n\r\n    // Call to fetch earned points and loyalty program details for the customer\r\n    frappe.call({\r\n      method: \"frappe.client.get_list\",\r\n      args: {\r\n        doctype: \"Loyalty Point Entry\",\r\n        filters: {\r\n          customer: frm.doc.customer,\r\n          expiry_date: [\">=\", frappe.datetime.get_today()]\r\n        },\r\n        fields: [\"loyalty_points\", \"loyalty_program\"]\r\n      },\r\n      callback: function(r) {\r\n        let earned = 0;\r\n        let redeemed = frm.doc.loyalty_points || 0; // Get redeemed points from Sales Invoice\r\n        let program = null;\r\n\r\n        // Sum up all earned points\r\n        (r.message || []).forEach(entry => {\r\n          if (entry.loyalty_points > 0) {\r\n            earned += entry.loyalty_points;\r\n          }\r\n\r\n          if (!program && entry.loyalty_program) {\r\n            program = entry.loyalty_program;\r\n          }\r\n        });\r\n\r\n        // Calculate remaining points\r\n        let remaining = earned - redeemed;\r\n\r\n        // If loyalty program exists and remaining points are more than 0\r\n        if (program && remaining > 0) {\r\n          frappe.call({\r\n            method: \"frappe.client.get\",\r\n            args: {\r\n              doctype: \"Loyalty Program\",\r\n              name: program\r\n            },\r\n            callback: function(p) {\r\n              let conversion_rate = p.message?.conversion_factor || 0;\r\n\r\n              // Calculate the total value of redeemed points\r\n              let redeemed_value = redeemed * conversion_rate;\r\n\r\n              let msg = `\r\n                <b>Loyalty Summary for ${frm.doc.customer}:</b><br>\r\n                ✅ Total Earned Points: <b>${earned}</b><br>\r\n                ❌ Total Redeemed Points: <b>${redeemed}</b><br>\r\n                🏁 Remaining Points: <b>${remaining}</b><br>\r\n                💰 Value of Redeemed Points: <b>${frappe.format(redeemed_value, {fieldtype: 'Currency'})}</b><br>\r\n                💰 Value of Remaining Points: <b>${frappe.format(remaining * conversion_rate, {fieldtype: 'Currency'})}</b>\r\n              `;\r\n              frappe.msgprint(msg);\r\n            }\r\n          });\r\n        } else {\r\n          let msg = `\r\n            <b>Loyalty Summary for ${frm.doc.customer}:</b><br>\r\n            ✅ Total Earned Points: <b>${earned}</b><br>\r\n            ❌ Total Redeemed Points: <b>${redeemed}</b><br>\r\n            🏁 Remaining Points: <b>${remaining}</b><br>\r\n            💰 Value of Redeemed Points: <b>${frappe.format(0, {fieldtype: 'Currency'})}</b><br>\r\n            ⚠️ No Loyalty Program found.\r\n          `;\r\n          frappe.msgprint(msg);\r\n        }\r\n      }\r\n    });\r\n  }\r\n});\r\n",
+  "view": "Form"
+ }
+]
