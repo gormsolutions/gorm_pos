@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"Yri2FRyUEY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"p4GnhqJws0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"0fhSfE6EIB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"35oTGAmZ_C\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}}]",
+ "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"1o2lC_r2EZ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"N17MiMEjJs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"AN2sNc5HG9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}},{\"id\":\"pRhMHDLBcg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"S_bYTD9gNP\",\"type\":\"header\",\"data\":{\"text\":\"<br>\",\"col\":12}},{\"id\":\"9nb1jzu7yp\",\"type\":\"card\",\"data\":{\"card_name\":\"Report\",\"col\":4}},{\"id\":\"WjcU8GYN7N\",\"type\":\"card\",\"data\":{\"card_name\":\"Transaction\",\"col\":4}},{\"id\":\"X3jnjUS5-C\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Self Services\",\"col\":4}}]",
  "creation": "2025-05-08 21:16:40.449436",
  "custom_blocks": [],
  "docstatus": 0,
@@ -11,9 +11,168 @@
  "indicator_color": "purple",
  "is_hidden": 0,
  "label": "GORM POS",
- "links": [],
- "modified": "2025-05-09 11:38:25.737557",
- "modified_by": "salespointone@pos.com",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Report",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Daily Sales Funds",
+   "link_count": 0,
+   "link_to": "Daily Sales Funds",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "GL Entry",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Items Sold",
+   "link_count": 0,
+   "link_to": "Items Sold",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Branch Real Time Stock Report",
+   "link_count": 0,
+   "link_to": "Branch Real Time Stock Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "List of Invoices Raised",
+   "link_count": 0,
+   "link_to": "List of Invoices Raised",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transaction",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Invoice",
+   "link_count": 0,
+   "link_to": "Sales Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Expense Claim",
+   "link_count": 0,
+   "link_to": "Expense Claim",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Receipt",
+   "link_count": 0,
+   "link_to": "Purchase Receipt",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Self Services",
+   "link_count": 6,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Leave Application",
+   "link_count": 0,
+   "link_to": "Leave Application",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Salary Slip",
+   "link_count": 0,
+   "link_to": "Salary Slip",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee",
+   "link_count": 0,
+   "link_to": "Employee",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Support Issue",
+   "link_count": 0,
+   "link_to": "Support Issue",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Attendance",
+   "link_count": 0,
+   "link_to": "Attendance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Stock Balance",
+   "link_count": 0,
+   "link_to": "Stock Balance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-06-26 03:01:02.191439",
+ "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "GORM POS",
  "number_cards": [],
@@ -35,32 +194,8 @@
   {
    "color": "Grey",
    "doc_view": "List",
-   "label": "Loyalty Program",
-   "link_to": "Loyalty Program",
-   "stats_filter": "[]",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Purchase Return Management",
-   "link_to": "Purchase Return Management",
-   "stats_filter": "[]",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
    "label": "Pos Closing Shift",
    "link_to": "POS Closing Shift",
-   "stats_filter": "[]",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Transaction Accounts",
-   "link_to": "Transaction Accounts",
    "stats_filter": "[]",
    "type": "DocType"
   },
@@ -77,6 +212,30 @@
    "doc_view": "List",
    "label": "Branch Expenses",
    "link_to": "Branch Expenses",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Purchase Return Management",
+   "link_to": "Purchase Return Management",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Loyalty Program",
+   "link_to": "Loyalty Program",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Transaction Accounts",
+   "link_to": "Transaction Accounts",
    "stats_filter": "[]",
    "type": "DocType"
   }
