@@ -17,6 +17,7 @@
   "end_date",
   "item_group",
   "minimum_quantity",
+  "maximum_quantity",
   "minimum_spend",
   "channel",
   "current_redemptions",
@@ -128,12 +129,17 @@
    "fieldtype": "Table",
    "label": "Items",
    "options": "Promotion Item"
+  },
+  {
+   "fieldname": "maximum_quantity",
+   "fieldtype": "Int",
+   "label": "Maximum Quantity"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-29 21:38:51.851905",
+ "modified": "2025-07-03 15:15:51.220611",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Promotion",

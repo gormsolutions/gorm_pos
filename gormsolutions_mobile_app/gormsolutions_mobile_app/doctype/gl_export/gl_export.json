@@ -12,6 +12,7 @@
   "is_running",
   "column_break_dsvd",
   "to_date",
+  "account",
   "file_url",
   "progress"
  ],
@@ -47,6 +48,7 @@
    "default": "0",
    "fieldname": "is_running",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "is running",
    "options": "Company"
   },
@@ -64,12 +66,18 @@
    "label": "Naming Series",
    "options": "GL-GPA-.YYYY.-",
    "read_only": 1
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "Account"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-02 12:34:13.061053",
+ "modified": "2025-07-03 17:52:43.762773",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "GL Export",

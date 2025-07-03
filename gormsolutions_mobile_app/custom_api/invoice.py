@@ -61,6 +61,20 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
 
     # Determine the fallback warehouse value
     fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
+    
+      # Fetch User Permission records for 'Warehouse' allowed for the current user
+    cost_center = frappe.get_all(
+        'User Permission',
+        filters={
+            'user': current_user,
+            'allow': 'Cost Center',
+            "is_default": 0
+        },
+        fields=['for_value']
+    )
+
+    # Determine the fallback warehouse value
+    cost_center = cost_center[0]['for_value'] if cost_center else None
 
     if not fallback_warehouse:
         # Set a default warehouse if no user permissions are found
@@ -70,15 +84,17 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
 
     pos_profile = None
     pos_warehouse = None
+    fulfillment_branch = None
 
     # If user is provided and is_pos is enabled, fetch POS profile
-    if user and is_pos:
-        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
+    if current_user and is_pos:
+        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": current_user}, "parent")
         pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+        fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
 
     # Set warehouse and enable update_stock if is_pos or update_stock is enabled
     if is_pos or update_stock:
-        for item in items:
+        for item in items:  
             # Use POS warehouse if available, else fallback to user-defined or default warehouse
             item['warehouse'] = pos_warehouse or fallback_warehouse
         update_stock = 1  # Explicitly enable update_stock
@@ -89,6 +105,8 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
             "doctype": "Sales Invoice",
             "customer": customer_name,
             "remarks":remarks,
+            "fulfillment_branch_": fulfillment_branch,  # Include fulfillment branch if available
+            "cost_center": cost_center,  # Include cost center if available
             "update_stock": update_stock,  # Ensure update_stock is enabled
             "is_pos": is_pos,  # Use the value passed by the user
             "items": items,

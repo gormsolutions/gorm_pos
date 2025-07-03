@@ -78,6 +78,8 @@ def export_general_ledger(filters=None):
 
 def get_conditions(filters):
     conditions = "1=1"
+    if filters.get("account"):
+        conditions += " AND account = %(account)s"
     if filters.get("company"):
         conditions += " AND company = %(company)s"
     if filters.get("account"):
