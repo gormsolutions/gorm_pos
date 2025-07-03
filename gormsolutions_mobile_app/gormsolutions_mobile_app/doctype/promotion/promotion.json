@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-28 13:15:39.984629",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "start_date",
+  "promotion_name",
+  "type",
+  "discount_amount",
+  "store",
+  "max_redemptions",
+  "current_discount_given",
+  "enabled",
+  "column_break_zsjx",
+  "end_date",
+  "item_group",
+  "minimum_quantity",
+  "minimum_spend",
+  "channel",
+  "current_redemptions",
+  "max_total_discount_value",
+  "section_break_yukv",
+  "items"
+ ],
+ "fields": [
+  {
+   "description": "Unique name",
+   "fieldname": "promotion_name",
+   "fieldtype": "Data",
+   "label": "Promotion Name"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "\nStandard % Discount\nQuantity % Discount\nAmount Off Discount\nGift Offer\nBuy 1 Get 1 Free\nDouble Points Days\nDelivery Fee Discount\nBirthday/Anniversary Specials\nWebsite-Specific Discounts"
+  },
+  {
+   "description": "For % discounts",
+   "fieldname": "discount_amount",
+   "fieldtype": "Float",
+   "label": "Discount Amount",
+   "options": "For \u20a61000 off"
+  },
+  {
+   "fieldname": "column_break_zsjx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "minimum_quantity",
+   "fieldtype": "Int",
+   "label": "Minimum Quantity",
+   "options": "Item Group"
+  },
+  {
+   "description": "Start of promo",
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "description": "End of promo",
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "\nPOS\nWebsite\nDelivery"
+  },
+  {
+   "fieldname": "section_break_yukv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "max_redemptions",
+   "fieldtype": "Int",
+   "label": "Max Redemptions"
+  },
+  {
+   "default": "0",
+   "description": "Whether promo is active",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "store",
+   "fieldtype": "Link",
+   "label": "Store",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "current_discount_given",
+   "fieldtype": "Currency",
+   "label": "Current Discount Given"
+  },
+  {
+   "description": "For amount/gift conditions",
+   "fieldname": "minimum_spend",
+   "fieldtype": "Currency",
+   "label": "Minimum Spend"
+  },
+  {
+   "description": "Auto-incremented counter",
+   "fieldname": "current_redemptions",
+   "fieldtype": "Int",
+   "label": "Current Redemptions"
+  },
+  {
+   "fieldname": "max_total_discount_value",
+   "fieldtype": "Currency",
+   "label": "Max Total Discount Value"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Promotion Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-29 21:38:51.851905",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Promotion",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

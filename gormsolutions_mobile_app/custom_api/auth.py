@@ -1,5 +1,6 @@
 import frappe
 from frappe import throw, msgprint, _
+import traceback
 
 @frappe.whitelist(allow_guest=True)
 def login(usr, pwd):
@@ -7,33 +8,41 @@ def login(usr, pwd):
         login_manager = frappe.auth.LoginManager()
         login_manager.authenticate(user=usr, pwd=pwd)
         login_manager.post_login()
-    except frappe.exceptions.AuthenticationError:
+        
+        user = frappe.get_doc('User', frappe.session.user)
+
+        # Generate or retrieve a custom API secret key
+        new_api_secret = user.custom_secret
+
+        # Prepare success response
+        frappe.local.response["message"] = {
+            "success_key": 1,
+            "sid": frappe.session.sid,
+            "user": user.name,
+            "api_key": user.api_key,
+            "api_secret": new_api_secret,
+            "full_name": user.full_name
+        }
+
+        # Ensure `home_page` is not returned
+        frappe.local.response.pop('home_page', None)
+
+    except frappe.exceptions.AuthenticationError as auth_error:
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success_key": 0,
-            "message": "Authentication Failed"
+            "message": "Authentication Failed",
+            "error": str(auth_error)
         }
-        return
 
-    user = frappe.get_doc('User', frappe.session.user)
-
-    # Generate a new API secret key for the user
-    new_api_secret = user.custom_secret
-
-    # Clear out the default `home_page` if present
-    frappe.local.response["message"] = {
-        "sid": frappe.session.sid,
-        "user": user.name,
-        "api_key": user.api_key,
-        "api_secret": new_api_secret,
-        "full_name": user.full_name  # Add full_name explicitly if you need it
-    }
-    
-    # Ensure `home_page` is not returned (clear it if it is added automatically)
-    if 'home_page' in frappe.local.response:
-        del frappe.local.response['home_page']
-        
-    return
+    except Exception as e:
+        frappe.log_error(title="Custom Login Error", message=traceback.format_exc())
+        frappe.local.response["message"] = {
+            "success_key": 0,
+            "message": "An unexpected error occurred during login",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 
 # signup.py

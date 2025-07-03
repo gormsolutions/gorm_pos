@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-07-01 23:15:31.535064",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "from_date",
+  "company",
+  "is_running",
+  "column_break_dsvd",
+  "to_date",
+  "file_url",
+  "progress"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "from date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "to date "
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "file_url",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "file url",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_dsvd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_running",
+   "fieldtype": "Check",
+   "label": "is running",
+   "options": "Company"
+  },
+  {
+   "fieldname": "progress",
+   "fieldtype": "Percent",
+   "hidden": 1,
+   "label": "progress",
+   "options": "Company"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "GL-GPA-.YYYY.-",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-02 12:34:13.061053",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "GL Export",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

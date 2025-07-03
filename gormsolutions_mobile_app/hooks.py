@@ -26,7 +26,7 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/gormsolutions_mobile_app/css/gormsolutions_mobile_app.css"
-# app_include_js = "/assets/gormsolutions_mobile_app/js/gormsolutions_mobile_app.js"
+# app_include_js = "/assets/gormsolutions_mobile_app/js/general_ledger_extension.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/gormsolutions_mobile_app/css/gormsolutions_mobile_app.css"
