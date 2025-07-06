@@ -151,23 +151,23 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"gormsolutions_mobile_app.tasks.all"
-# 	],
-# 	"daily": [
-# 		"gormsolutions_mobile_app.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"gormsolutions_mobile_app.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"gormsolutions_mobile_app.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"gormsolutions_mobile_app.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	# "all": [
+	# 	"gormsolutions_mobile_app.tasks.all"
+	# ],
+	# "daily": [
+	# 	"gormsolutions_mobile_app.tasks.daily"
+	# ],
+	"hourly": [
+		"gormsolutions_mobile_app.custom_api.otp.sms_otp.deactivate_expired_otps"
+	],
+	# "weekly": [
+	# 	"gormsolutions_mobile_app.tasks.weekly"
+	# ],
+	# "monthly": [
+	# 	"gormsolutions_mobile_app.tasks.monthly"
+	# ],
+}
 
 # Testing
 # -------

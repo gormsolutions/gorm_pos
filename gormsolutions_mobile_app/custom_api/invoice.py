@@ -248,7 +248,7 @@ def get_sales_payment_summary(start_date, end_date):
     except Exception as e:
         return {"error": str(e)}
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def cancel_invoice(name=None):
     try:
         # Get the Sales Invoice document
