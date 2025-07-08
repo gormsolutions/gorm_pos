@@ -1,61 +1,30 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-07-06 11:15:12.511835",
+ "creation": "2025-07-08 14:50:59.462120",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "date",
-  "tel",
-  "senders_full_name",
-  "senders_email",
+  "section_break_pcsl",
   "amended_from",
-  "column_break_bpop",
+  "date",
   "active",
   "reason"
  ],
  "fields": [
   {
-   "fieldname": "tel",
-   "fieldtype": "Data",
-   "label": "contact"
-  },
-  {
-   "fieldname": "reason",
-   "fieldtype": "Small Text",
-   "label": "Reason"
+   "fieldname": "section_break_pcsl",
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "OTP Code",
+   "options": "Double Points Day",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
-  },
-  {
-   "fieldname": "senders_full_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Senders Full Name",
-   "options": "User"
-  },
-  {
-   "fieldname": "senders_email",
-   "fieldtype": "Link",
-   "label": "Senders mail",
-   "options": "User"
-  },
-  {
-   "allow_on_submit": 1,
-   "default": "0",
-   "fieldname": "active",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "label": "Active",
-   "options": "User"
   },
   {
    "fieldname": "date",
@@ -63,18 +32,25 @@
    "label": "Date"
   },
   {
-   "fieldname": "column_break_bpop",
-   "fieldtype": "Column Break"
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-08 13:52:27.241157",
+ "modified": "2025-07-08 14:52:01.427135",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
- "name": "OTP Code",
+ "name": "Double Points Day",
  "owner": "Administrator",
  "permissions": [
   {
@@ -87,6 +63,7 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],

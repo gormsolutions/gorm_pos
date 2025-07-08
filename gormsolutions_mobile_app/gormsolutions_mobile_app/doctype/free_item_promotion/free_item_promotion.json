@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-05 23:00:51.109826",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "valid_from",
+  "main_item",
+  "is_active",
+  "column_break_jvfs",
+  "valid_to",
+  "company",
+  "section_break_kyrw",
+  "free_item_promotion_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "main_item",
+   "fieldtype": "Link",
+   "label": "Main Item",
+   "options": "Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "options": "Item"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From",
+   "options": "Company"
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Valid To",
+   "options": "Company"
+  },
+  {
+   "fieldname": "free_item_promotion_item",
+   "fieldtype": "Table",
+   "label": "Free Item Promotion item",
+   "options": "Free Item Promotion item"
+  },
+  {
+   "fieldname": "column_break_jvfs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kyrw",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-06 23:34:41.090163",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Free Item Promotion",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

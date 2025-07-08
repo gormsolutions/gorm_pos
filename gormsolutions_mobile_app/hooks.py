@@ -144,7 +144,8 @@ doc_events = {
 	# 	"on_trash": "method"
 	# }
 	"Sales Invoice": {
-		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname"
+		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname",
+  		# "on_submit": "gormsolutions_mobile_app.custom_api.promotion.double_points.double_loyalty_points_on_submit",
 	}
 }
 

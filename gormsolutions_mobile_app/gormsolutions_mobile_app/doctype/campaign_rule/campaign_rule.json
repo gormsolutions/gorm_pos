@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-08 17:21:12.106582",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "campaign_name",
+  "type",
+  "is_active",
+  "column_break_wxny",
+  "company",
+  "reward_type",
+  "section_break_drpb",
+  "free_item_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "campaign_name",
+   "fieldtype": "Data",
+   "label": "Campaign Name"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "\nBirthday\nAnniversary"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "options": "\nBirthday\nAnniversary\n"
+  },
+  {
+   "fieldname": "reward_type",
+   "fieldtype": "Select",
+   "label": "Reward Type",
+   "options": "\nDouble Points\nFree Item"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "free_item_code",
+   "fieldtype": "Table",
+   "label": "Free Item Code",
+   "options": "Free Item Promotion item"
+  },
+  {
+   "fieldname": "column_break_wxny",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_drpb",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-08 17:26:14.901423",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Campaign Rule",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
