@@ -3,10 +3,11 @@ from frappe.utils import today, flt
 from datetime import datetime
 
 def get_today_mmdd():
+    """Return today's date in MM-DD format."""
     return datetime.strptime(today(), "%Y-%m-%d").strftime("%m-%d")
 
 def is_customer_special_day(customer, special_type):
-    """Check if today matches the customer's birthday or anniversary"""
+    """Check if today matches the customer's birthday or anniversary."""
     cust = frappe.get_doc("Customer", customer)
     today_mmdd = get_today_mmdd()
 
@@ -27,23 +28,21 @@ def is_customer_special_day(customer, special_type):
     return False
 
 def get_active_campaign_rules(company, types=["Birthday", "Anniversary"]):
-    return frappe.get_all("Campaign Rule",
-        filters={
-            "type": ["in", types],
-            "is_active": 1,
-            "company": company
-        },
-        fields=["name", "type", "reward_type"]
-    )
+    """Fetch active campaign rules for the company and given types."""
+    return frappe.get_all("Campaign Rule", {
+        "type": ["in", types],
+        "is_active": 1,
+        "company": company
+    }, ["name", "type", "reward_type", "expense_account"])
 
 def get_campaign_free_items(campaign_name):
-    return frappe.get_all("Free Item Promotion item",
-        filters={"parent": campaign_name},
-        fields=["free_item", "free_qty_per_main_qty"]
-    )
+    """Fetch free item entries from the campaign."""
+    return frappe.get_all("Free Item Promotion item", {
+        "parent": campaign_name
+    }, ["free_item", "free_qty_per_main_qty"])
 
 def add_special_day_free_items(doc, method):
-    """Called on `before_save` to add free items for Birthday/Anniversary"""
+    """Hook: Add free items if today is a special day (before_save)."""
     if not doc.customer:
         return
 
@@ -60,16 +59,16 @@ def add_special_day_free_items(doc, method):
 
         items = get_campaign_free_items(campaign.name)
         for item in items:
-            # Avoid duplicate entry
+            # Skip if item already exists
             if any(i.item_code == item.free_item for i in doc.items):
                 continue
 
             item_details = frappe.get_doc("Item", item.free_item)
 
-            # Get income_account from Item Defaults
+            # Get income_account from item defaults
             income_account = ""
             if item_details.item_defaults:
-                income_account = item_details.item_defaults[0].income_account or ""
+                income_account = item_details.item_defaults[0].get("income_account", "")
 
             doc.append("items", {
                 "item_code": item_details.item_code,
@@ -83,7 +82,7 @@ def add_special_day_free_items(doc, method):
                 "base_amount": 0,
                 "price_list_rate": 0,
                 "income_account": income_account,
-                "expense_account": "5222 - Discount Allowed - WASP",
+                "expense_account": campaign.expense_account,
                 "description": "Free Item",
                 "is_free_item": 1,
                 "custom_free_item": 1,
@@ -91,7 +90,7 @@ def add_special_day_free_items(doc, method):
             })
 
 def apply_special_day_loyalty_points(doc, method):
-    """Called on `before_submit` to apply double loyalty points for Birthday/Anniversary"""
+    """Hook: Apply double loyalty points for special day (before_submit)."""
     if not doc.customer or not doc.loyalty_program:
         return
 
@@ -107,20 +106,24 @@ def apply_special_day_loyalty_points(doc, method):
             continue
 
         program = frappe.get_doc("Loyalty Program", doc.loyalty_program)
+   
         collection_factor = 1
         if program.collection_rules:
             rule = program.collection_rules[0]
             collection_factor = flt(rule.collection_factor or 1)
 
-        loyalty_points = (flt(doc.base_grand_total) / collection_factor) * 2  # Double points
+        # Double the loyalty points
+        loyalty_points = (flt(doc.base_grand_total) / collection_factor) * 2
 
         entry = frappe.new_doc("Loyalty Point Entry")
         entry.customer = doc.customer
         entry.loyalty_program = doc.loyalty_program
-        entry.transaction_type = "Sales Invoice"
-        entry.transaction_name = doc.name
+        entry.invoice = doc.name
         entry.posting_date = doc.posting_date
         entry.loyalty_points = loyalty_points
+        entry.purchase_amount = doc.base_grand_total
+        entry.invoice_type = "Sales Invoice"
+        entry.expiry_date = doc.posting_date
         entry.company = doc.company
         entry.remarks = f"🎉 {campaign.type} Double Points Bonus"
         entry.insert(ignore_permissions=True)

@@ -1,42 +1,5 @@
 import frappe
-from frappe.utils import today, flt, add_days, cint
-from datetime import datetime
-
-def get_today_mmdd():
-    return datetime.strptime(today(), "%Y-%m-%d").strftime("%m-%d")
-
-def is_customer_special_day(customer, special_type):
-    """Check if today is customer's birthday or anniversary"""
-    cust = frappe.get_doc("Customer", customer)
-    today_mmdd = get_today_mmdd()
-
-    if special_type == "Birthday":
-        dob = cust.get("custom_date_of_birth")
-        dob_mmdd = datetime.strptime(dob, "%Y-%m-%d").strftime("%m-%d") if dob else None
-        return today_mmdd == dob_mmdd
-
-    elif special_type == "Anniversary":
-        anniv = cust.get("custom_anniversary_date")
-        anniv_mmdd = datetime.strptime(anniv, "%Y-%m-%d").strftime("%m-%d") if anniv else None
-        return today_mmdd == anniv_mmdd
-
-    return False
-
-def get_active_campaign_rules(company, types=["Birthday", "Anniversary"]):
-    return frappe.get_all("Campaign Rule",
-        filters={
-            "type": ["in", types],
-            "is_active": 1,
-            "company": company
-        },
-        fields=["name", "type", "reward_type"]
-    )
-
-def get_campaign_free_items(campaign_name):
-    return frappe.get_all("Free Item Promotion item",
-        filters={"parent": campaign_name},
-        fields=["free_item", "free_qty_per_main_qty"]
-    )
+from frappe.utils import flt, add_days, cint
 
 def is_double_points_day(invoice_date):
     return frappe.db.exists("Double Points Day", {
@@ -44,80 +7,71 @@ def is_double_points_day(invoice_date):
         "is_active": 1
     })
 
+def get_best_collection_rule(program, amount):
+    best_rule = None
+    for rule in program.collection_rules:
+        frappe.msgprint(f"Checking Tier: {rule.tier_name}, Min Spent: {rule.min_spent}")
+        if flt(amount) >= flt(rule.min_spent):
+            if not best_rule or flt(rule.min_spent) > flt(best_rule.min_spent):
+                best_rule = rule
+
+    if best_rule:
+        frappe.msgprint(f"✅ Best Tier Selected: {best_rule.tier_name}")
+    else:
+        if program.collection_rules:
+            best_rule = program.collection_rules[0]  # fallback to first rule (e.g. Bronze)
+            frappe.msgprint(f"⚠️ No eligible tier found. Falling back to: {best_rule.tier_name}")
+        else:
+            frappe.msgprint("❌ No collection rules found at all.")
+    return best_rule
+
 def get_loyalty_points(doc):
     program = frappe.get_doc("Loyalty Program", doc.loyalty_program)
-    collection_factor = 1.0
-    if program.collection_rules:
-        rule = program.collection_rules[0]
-        collection_factor = flt(rule.collection_factor or 1.0)
-
     total_spent = flt(doc.base_grand_total)
 
-    if collection_factor <= 0:
-        return 0
+    best_rule = get_best_collection_rule(program, total_spent)
 
-    return round(total_spent / collection_factor, 2)
+    if best_rule and flt(best_rule.collection_factor) > 0:
+        loyalty_points = round(total_spent / flt(best_rule.collection_factor), 2)
+        return loyalty_points, best_rule.tier_name
+    else:
+        return 0, ""
 
-def apply_special_day_rewards(doc, method):
-    if not doc.customer or not doc.loyalty_program:
+def double_loyalty_points_on_submit(doc, method):
+    if not doc.loyalty_program or not doc.customer:
+        frappe.msgprint("❌ Missing loyalty program or customer.")
         return
 
-    campaigns = get_active_campaign_rules(doc.company)
-    if not campaigns:
+    if not is_double_points_day(doc.posting_date):
+        frappe.msgprint("ℹ️ Not a Double Points Day.")
         return
 
-    for campaign in campaigns:
-        if not is_customer_special_day(doc.customer, campaign.type):
-            continue
+    frappe.msgprint("✅ Double Points Day detected. Checking tiers...")
 
-        # Handle Free Item Reward
-        if campaign.reward_type == "Free Item":
-            items = get_campaign_free_items(campaign.name)
-            for item in items:
-                if any(i.item_code == item.free_item for i in doc.items):
-                    continue
-                doc.append("items", {
-                    "item_code": item.free_item,
-                    "qty": item.free_qty_per_main_qty or 1,
-                    "rate": 0,
-                    "amount": 0,
-                    "is_free_item": 1,
-                    "item_name": f"🎁 {campaign.type} Gift - {item.free_item}",
-                    "description": f"Free {campaign.type.lower()} item from campaign",
-                    "uom": "Nos"
-                })
+    loyalty_points, tier_name = get_loyalty_points(doc)
+    if not loyalty_points:
+        frappe.msgprint("❌ Loyalty points could not be calculated.")
+        return
 
-        # Handle Double Points Reward
-        elif campaign.reward_type == "Double Points":
-            # Check if today is a double points day (your custom logic)
-            if not is_double_points_day(doc.posting_date):
-                continue
+    program = frappe.get_doc("Loyalty Program", doc.loyalty_program)
+    expiry_days = cint(program.expiry_duration) if program.expiry_duration else 365
+    expiry_date = add_days(doc.posting_date, expiry_days)
 
-            loyalty_points = get_loyalty_points(doc)
-            if not loyalty_points:
-                frappe.msgprint("No loyalty points calculated from the loyalty program.")
-                continue
+    # Create the Loyalty Point Entry manually
+    entry = frappe.new_doc("Loyalty Point Entry")
+    entry.customer = doc.customer
+    entry.loyalty_program = doc.loyalty_program
+    entry.loyalty_program_tier = tier_name
+    entry.invoice = doc.name
+    entry.posting_date = doc.posting_date
+    entry.loyalty_points = loyalty_points
+    entry.purchase_amount = doc.base_grand_total
+    entry.invoice_type = "Sales Invoice"
+    entry.expiry_date = expiry_date
+    entry.company = doc.company
+    entry.remarks = "🎉 Double Points Day Bonus"
 
-            program = frappe.get_doc("Loyalty Program", doc.loyalty_program)
-            expiry_days = cint(program.expiry_duration) if program.expiry_duration else 365
-            expiry_date = add_days(doc.posting_date, expiry_days)
+    entry.insert(ignore_permissions=True)
+    entry.submit()
 
-            entry = frappe.new_doc("Loyalty Point Entry")
-            entry.customer = doc.customer
-            entry.loyalty_program = doc.loyalty_program
-            entry.invoice_type = "Sales Invoice"
-            entry.transaction_name = doc.name
-            entry.invoice = doc.name
-            entry.posting_date = doc.posting_date
-            entry.loyalty_points = loyalty_points
-            entry.purchase_amount = doc.loyalty_points
-            entry.expiry_date = expiry_date
-            entry.company = doc.company
-            entry.remarks = f"🎉 {campaign.type} Double Points Bonus"
-
-            entry.insert(ignore_permissions=True)
-            entry.submit()
-
-            frappe.msgprint(f"✅ {campaign.type} Double Points: Bonus {loyalty_points} Loyalty Points awarded!")
-
-    frappe.msgprint("🎉 Special day rewards applied from campaign(s).")
+    frappe.msgprint(f"✅ {tier_name} Tier: Bonus {loyalty_points} Loyalty Points awarded via entry {entry.name}.")

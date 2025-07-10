@@ -6,17 +6,20 @@
  "engine": "InnoDB",
  "field_order": [
   "from_date",
+  "company",
   "store",
   "discount_type",
   "column_break_drpw",
   "to_date",
   "discount_amount",
+  "delivery_account",
   "is_active"
  ],
  "fields": [
   {
    "fieldname": "store",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Store",
    "options": "Cost Center"
   },
@@ -29,18 +32,21 @@
   {
    "fieldname": "discount_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Discount Amount",
    "options": "Warehouse"
   },
   {
    "fieldname": "from_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "from date",
    "options": "Warehouse"
   },
   {
    "fieldname": "to_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "to date",
    "options": "Warehouse"
   },
@@ -52,13 +58,27 @@
    "default": "0",
    "fieldname": "is_active",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Is Active",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "delivery_account",
+   "fieldtype": "Link",
+   "label": "Delivery Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-08 17:01:51.463626",
+ "modified": "2025-07-09 02:06:35.000716",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Delivery Fee Discount",
@@ -77,6 +97,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

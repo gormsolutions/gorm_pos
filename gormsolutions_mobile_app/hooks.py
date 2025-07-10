@@ -145,8 +145,19 @@ doc_events = {
 	# }
 	"Sales Invoice": {
 		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname",
+        "before_save": "gormsolutions_mobile_app.custom_api.promotion.birthday_bonus.add_special_day_free_items",
+    "on_submit": [
+        "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.create_delivery_fee_journal_entry",
+        "gormsolutions_mobile_app.custom_api.promotion.double_points.double_loyalty_points_on_submit",
+        "gormsolutions_mobile_app.custom_api.promotion.birthday_bonus.apply_special_day_loyalty_points"
+    ],
+    "on_update": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount",
   		# "on_submit": "gormsolutions_mobile_app.custom_api.promotion.double_points.double_loyalty_points_on_submit",
-	}
+	},
+
+	"Sales Order": {
+        "before_save": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount"
+    },
 }
 
 # Scheduled Tasks

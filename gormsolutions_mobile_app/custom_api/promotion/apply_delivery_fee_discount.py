@@ -2,24 +2,31 @@ import frappe
 from frappe.utils import today, flt
 
 def apply_delivery_fee_discount(doc, method):
+    """
+    Apply delivery fee discount based on the cost_center (store)
+    and today's active discount rules.
+    """
     if not doc.get("cost_center"):
         return
 
     today_date = today()
 
-    # Get active discount for today's date and matching store
-    discounts = frappe.get_all("Delivery Fee Discount",
+    # Get active discounts for today and the store (cost_center)
+    discounts = frappe.get_all(
+        "Delivery Fee Discount",
         filters={
             "store": doc.cost_center,
-            "from_date": ("<=", today_date),
-            "to_date": (">=", today_date),
-            "is_active": 1
+            "from_date": ["<=", today_date],
+            "to_date": [">=", today_date],
+            "is_active": 1,
+            "company": doc.company,
         },
-        order_by="discount_type desc"
+        order_by="discount_type desc",
+        limit_page_length=1,
     )
 
     if not discounts:
-        return  # No applicable discount
+        return  # No discount applicable
 
     discount = frappe.get_doc("Delivery Fee Discount", discounts[0].name)
 
@@ -27,36 +34,74 @@ def apply_delivery_fee_discount(doc, method):
         doc.custom_delivery_fee = 0
     elif discount.discount_type == "Flat Fee":
         doc.custom_delivery_fee = max(0, discount.discount_amount)
+        frappe.db.commit()
+    else:
+        # Optional: handle other discount types if any
+        pass
 
+
+import frappe
+from frappe.utils import flt
 
 @frappe.whitelist()
 def create_delivery_fee_journal_entry(doc, method):
+    """
+    Create a Journal Entry for the delivery fee after applying discount.
+    """
+
     delivery_fee = flt(getattr(doc, "custom_delivery_fee", 0))
-
     if not delivery_fee or delivery_fee <= 0:
-        return
+        return  # No fee to post
 
-    # Define your delivery fee account
-    delivery_account = "Delivery Fee Income - WASP"  # Update to match your Chart of Accounts
+    # Get active discount based on posting_date and cost_center
+    discounts = frappe.get_all(
+        "Delivery Fee Discount",
+        filters={
+            "store": doc.cost_center,
+            "from_date": ["<=", doc.posting_date],
+            "to_date": [">=", doc.posting_date],
+            "is_active": 1,
+            "company": doc.company,
+        },
+        order_by="discount_type desc",
+        limit_page_length=1,
+    )
 
-    # Create Journal Entry
+    if not discounts:
+        frappe.throw("No active Delivery Fee Discount found for this document.")
+
+    discount = frappe.get_doc("Delivery Fee Discount", discounts[0].name)
+
+    # Debug: Log the delivery_account value
+    frappe.log_error(f"Delivery Account found: {discount.delivery_account}", "Delivery Fee Discount Debug")
+
+    delivery_account = discount.delivery_account
+
+    # If delivery_account is missing, try fallback or throw
+    if not delivery_account:
+        # You can set a fallback account here if you want, else throw error
+        # Example fallback (uncomment if needed):
+        # delivery_account = "Sales - " + doc.company
+        frappe.throw("Delivery Fee Discount does not have a Delivery Account set.")
+
+    # Create Journal Entry doc
     je = frappe.new_doc("Journal Entry")
     je.voucher_type = "Journal Entry"
     je.posting_date = doc.posting_date
-    je.company = doc.company
-    je.remark = f"Delivery Fee booking for {doc.name}"
+    je.company = discount.company  # Use company from discount doc
+    je.remarks = f"Delivery Fee booking for {doc.name}"
 
-    # Debit: Customer (Receivable)
+    # Debit entry: Customer (Receivable)
     je.append("accounts", {
         "account": doc.debit_to,
         "party_type": "Customer",
         "party": doc.customer,
         "debit_in_account_currency": delivery_fee,
-        "reference_type": "Sales Invoice",
+        "reference_type": doc.doctype,
         "reference_name": doc.name
     })
 
-    # Credit: Delivery Fee Income Account
+    # Credit entry: Delivery Fee Income Account
     je.append("accounts", {
         "account": delivery_account,
         "credit_in_account_currency": delivery_fee

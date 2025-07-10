@@ -36,115 +36,32 @@ def get_invoice_details(limit, offset, search=None):
 
     return sales_invoice_details
 
-
-@frappe.whitelist()
-def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payment=None,reference_no=None,user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0):
-    import json
-
-    # Parse items if necessary
-    if isinstance(items, str):
-        items = json.loads(items)
-
-    # Get the current user
-    current_user = frappe.session.user
-
-    # Fetch User Permission records for 'Warehouse' allowed for the current user
-    fallback_warehouse = frappe.get_all(
-        'User Permission',
-        filters={
-            'user': current_user,
-            'allow': 'Warehouse',
-            "is_default": 0
-        },
-        fields=['for_value']
-    )
-
-    # Determine the fallback warehouse value
-    fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
-    
-      # Fetch User Permission records for 'Warehouse' allowed for the current user
-    cost_center = frappe.get_all(
-        'User Permission',
-        filters={
-            'user': current_user,
-            'allow': 'Cost Center',
-            "is_default": 0
-        },
-        fields=['for_value']
-    )
-
-    # Determine the fallback warehouse value
-    cost_center = cost_center[0]['for_value'] if cost_center else None
-
-    if not fallback_warehouse:
-        # Set a default warehouse if no user permissions are found
-        fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
-        if not fallback_warehouse:
-            return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
-
-    pos_profile = None
-    pos_warehouse = None
-    fulfillment_branch = None
-
-    # If user is provided and is_pos is enabled, fetch POS profile
-    if current_user and is_pos:
-        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": current_user}, "parent")
-        pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
-        fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
-
-    # Set warehouse and enable update_stock if is_pos or update_stock is enabled
-    if is_pos or update_stock:
-        for item in items:  
-            # Use POS warehouse if available, else fallback to user-defined or default warehouse
-            item['warehouse'] = pos_warehouse or fallback_warehouse
-        update_stock = 1  # Explicitly enable update_stock
-
-    try:
-        # Construct the Sales Invoice document
-        invoice_doc_data = {
-            "doctype": "Sales Invoice",
-            "customer": customer_name,
-            "remarks":remarks,
-            "fulfillment_branch_": fulfillment_branch,  # Include fulfillment branch if available
-            "cost_center": cost_center,  # Include cost center if available
-            "update_stock": update_stock,  # Ensure update_stock is enabled
-            "is_pos": is_pos,  # Use the value passed by the user
-            "items": items,
-            "discount_amount": discount_amount,  # Apply discount amount
-            "additional_discount_percentage": discount_percentage,  # Apply discount percentage
-            "apply_discount_on": "Grand Total",  # Choose to apply discount on Grand Total
-            "payments": [{
-                "mode_of_payment": mode_of_payment,  # Using the first permitted mode of payment
-                "amount": paid_amount,
-                "reference_no":reference_no
-            }]
-        }
-
-        # Include POS profile only if is_pos is enabled
-        if is_pos:
-            invoice_doc_data["pos_profile"] = pos_profile
-
-        # Create and submit the invoice
-        invoice_doc = frappe.get_doc(invoice_doc_data)
-        res_doc = invoice_doc.insert(ignore_permissions=True)
-        res_doc.submit()
-        return res_doc
-
-    except Exception as e:
-        return {"error": str(e)}
-
 # @frappe.whitelist()
-# def create_invoices(customer_name, paid_amount, items, remarks=None, mode_of_payment=None, reference_no=None, user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0, payments=None):
+# def create_invoice(
+#     customer_name,
+#     paid_amount=None,
+#     items=None,
+#     remarks=None,
+#     payments=None,
+#     mode_of_payment=None,
+#     reference_no=None,
+#     user=None,
+#     is_pos=None,
+#     update_stock=None,
+#     discount_amount=0,
+#     discount_percentage=0
+# ):
 #     import json
 
+#     # Parse items and payments if they're passed as strings
 #     if isinstance(items, str):
 #         items = json.loads(items)
-
-#     if payments and isinstance(payments, str):
+#     if isinstance(payments, str):
 #         payments = json.loads(payments)
 
 #     current_user = frappe.session.user
 
+#     # Fetch fallback warehouse from User Permission or Stock Settings
 #     fallback_warehouse = frappe.get_all(
 #         'User Permission',
 #         filters={
@@ -154,51 +71,76 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
 #         },
 #         fields=['for_value']
 #     )
-
 #     fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
+
+#     # Fetch fallback cost center from User Permission
+#     cost_center = frappe.get_all(
+#         'User Permission',
+#         filters={
+#             'user': current_user,
+#             'allow': 'Cost Center',
+#             "is_default": 0
+#         },
+#         fields=['for_value']
+#     )
+#     cost_center = cost_center[0]['for_value'] if cost_center else None
 
 #     if not fallback_warehouse:
 #         fallback_warehouse = frappe.db.get_single_value('Stock Settings', 'default_warehouse')
 #         if not fallback_warehouse:
-#             return {"error": "No warehouse assigned to user and no default warehouse found in Stock Settings."}
+#             return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
 
 #     pos_profile = None
 #     pos_warehouse = None
+#     fulfillment_branch = None
 
-#     if user and is_pos:
-#         pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": user}, "parent")
+#     # POS profile setup if needed
+#     if current_user and is_pos:
+#         pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": current_user}, "parent")
 #         pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+#         fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
 
+#     # Assign warehouse to items
 #     if is_pos or update_stock:
 #         for item in items:
-#             item['warehouse'] = pos_warehouse or fallback_warehouse
+#             item["warehouse"] = pos_warehouse or fallback_warehouse
 #         update_stock = 1
+
+#     # Prepare payments section
+#     payment_entries = []
+#     if payments:
+#         for p in payments:
+#             payment_entries.append({
+#                 "mode_of_payment": p.get("mode_of_payment"),
+#                 "amount": p.get("amount"),
+#                 "reference_no": p.get("reference_no")
+#             })
+#     elif mode_of_payment and paid_amount:
+#         # Fallback to single payment if multiple aren't supplied
+#         payment_entries.append({
+#             "mode_of_payment": mode_of_payment,
+#             "amount": paid_amount,
+#             "reference_no": reference_no
+#         })
 
 #     try:
 #         invoice_doc_data = {
 #             "doctype": "Sales Invoice",
 #             "customer": customer_name,
 #             "remarks": remarks,
+#             "fulfillment_branch_": fulfillment_branch,
+#             "cost_center": cost_center,
 #             "update_stock": update_stock,
 #             "is_pos": is_pos,
 #             "items": items,
 #             "discount_amount": discount_amount,
 #             "additional_discount_percentage": discount_percentage,
-#             "apply_discount_on": "Grand Total"
+#             "apply_discount_on": "Grand Total",
+#             "payments": payment_entries
 #         }
 
 #         if is_pos:
 #             invoice_doc_data["pos_profile"] = pos_profile
-
-#         # ✅ Payments section
-#         if payments:
-#             invoice_doc_data["payments"] = payments
-#         else:
-#             invoice_doc_data["payments"] = [{
-#                 "mode_of_payment": mode_of_payment,
-#                 "amount": paid_amount,
-#                 "reference_no": reference_no
-#             }]
 
 #         invoice_doc = frappe.get_doc(invoice_doc_data)
 #         res_doc = invoice_doc.insert(ignore_permissions=True)
@@ -207,6 +149,133 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
 
 #     except Exception as e:
 #         return {"error": str(e)}
+
+import json
+import frappe
+from frappe.utils import flt
+
+@frappe.whitelist()
+def create_invoice(
+    customer_name,
+    paid_amount=None,
+    items=None,
+    remarks=None,
+    payments=None,
+    mode_of_payment=None,
+    reference_no=None,
+    user=None,
+    is_pos=None,
+    update_stock=None,
+    discount_amount=0,
+    discount_percentage=0,
+    loyalty_points=None,
+    redeem_loyalty_points=None  # checkbox flag
+):
+    current_user = user or frappe.session.user
+
+    # Parse string inputs
+    if isinstance(items, str):
+        items = json.loads(items)
+    if isinstance(payments, str):
+        payments = json.loads(payments)
+
+    # Get fallback warehouse
+    fallback_warehouse = frappe.get_all(
+        'User Permission',
+        filters={'user': current_user, 'allow': 'Warehouse', "is_default": 0},
+        fields=['for_value']
+    )
+    fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else \
+                         frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+
+    if not fallback_warehouse:
+        return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
+
+    # Get POS Profile info
+    pos_profile = pos_warehouse = fulfillment_branch = cost_center = None
+    if is_pos:
+        pos_profile = frappe.db.get_value("POS Profile User", {"default": 1, "user": current_user}, "parent")
+        if pos_profile:
+            pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+            fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
+            cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
+
+    # Assign warehouse to each item
+    if is_pos or update_stock:
+        for item in items or []:
+            item["warehouse"] = pos_warehouse or fallback_warehouse
+            item["cost_center"] = cost_center
+        update_stock = 1
+
+    # Prepare payment entries
+    payment_entries = []
+    if payments:
+        for p in payments:
+            mode = p.get("mode_of_payment")
+            amount = flt(p.get("amount") or 0)
+            reference = p.get("reference_no")
+            if amount > 0:
+                payment_entries.append({
+                    "mode_of_payment": mode,
+                    "amount": amount,
+                    "reference_no": reference
+                })
+    elif mode_of_payment and paid_amount:
+        payment_entries.append({
+            "mode_of_payment": mode_of_payment,
+            "amount": flt(paid_amount),
+            "reference_no": reference_no
+        })
+
+    # Loyalty Points
+    if redeem_loyalty_points and flt(loyalty_points) > 0:
+        loyalty_program = frappe.db.get_value("Customer", customer_name, "loyalty_program")
+        if not loyalty_program:
+            return {"error": f"Customer {customer_name} is not enrolled in any Loyalty Program."}
+
+        conversion_factor = frappe.db.get_value("Loyalty Program", loyalty_program, "conversion_factor")
+        if not conversion_factor:
+            return {"error": f"No conversion factor found for Loyalty Program {loyalty_program}."}
+
+        loyalty_amount = flt(loyalty_points) * flt(conversion_factor)
+        payment_entries.append({
+            "mode_of_payment": "Redeem Loyalty Points",
+            "amount": loyalty_amount,
+            "reference_no": "Loyalty"
+        })
+
+    # Prepare and create Sales Invoice
+    try:
+        invoice_doc_data = {
+            "doctype": "Sales Invoice",
+            "customer": customer_name,
+            "remarks": remarks,
+            "fulfillment_branch_": fulfillment_branch,
+            "cost_center": cost_center,
+            "update_stock": update_stock,
+            "confirm_branch": 1,
+            "is_pos": is_pos,
+            "items": items or [],
+            "discount_amount": discount_amount,
+            "additional_discount_percentage": discount_percentage,
+            "apply_discount_on": "Grand Total",
+            "payments": payment_entries,
+            "redeem_loyalty_points": redeem_loyalty_points,
+            "loyalty_points": flt(loyalty_points),
+        }
+
+        if is_pos:
+            invoice_doc_data["pos_profile"] = pos_profile
+
+        invoice_doc = frappe.get_doc(invoice_doc_data)
+        invoice_doc.insert(ignore_permissions=True)
+        invoice_doc.submit()
+
+        return invoice_doc
+
+    except Exception as e:
+        return {"error": str(e)}
+
 
 
 @frappe.whitelist()

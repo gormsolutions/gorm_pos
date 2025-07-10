@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"1o2lC_r2EZ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"N17MiMEjJs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"AN2sNc5HG9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}},{\"id\":\"pRhMHDLBcg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"S_bYTD9gNP\",\"type\":\"header\",\"data\":{\"text\":\"<br>\",\"col\":12}},{\"id\":\"9nb1jzu7yp\",\"type\":\"card\",\"data\":{\"card_name\":\"Report\",\"col\":4}},{\"id\":\"dnF76bYDan\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Export\",\"col\":3}},{\"id\":\"WjcU8GYN7N\",\"type\":\"card\",\"data\":{\"card_name\":\"Transaction\",\"col\":4}},{\"id\":\"X3jnjUS5-C\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Self Services\",\"col\":4}}]",
+ "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"1o2lC_r2EZ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"N17MiMEjJs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"AN2sNc5HG9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}},{\"id\":\"cqmCWI9SEY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OTP CODES\",\"col\":3}},{\"id\":\"pRhMHDLBcg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"thlPfxapMc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Double Points Day\",\"col\":3}},{\"id\":\"rh6_0cMDLG\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Delivery Fee Discount\",\"col\":3}},{\"id\":\"gTc71-9fA1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"5UmE-ZYfvC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Birthday/Anniversary Settings\",\"col\":3}},{\"id\":\"S_bYTD9gNP\",\"type\":\"header\",\"data\":{\"text\":\"<br>\",\"col\":12}},{\"id\":\"9nb1jzu7yp\",\"type\":\"card\",\"data\":{\"card_name\":\"Report\",\"col\":4}},{\"id\":\"dnF76bYDan\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Export\",\"col\":3}},{\"id\":\"WjcU8GYN7N\",\"type\":\"card\",\"data\":{\"card_name\":\"Transaction\",\"col\":4}},{\"id\":\"X3jnjUS5-C\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Self Services\",\"col\":4}}]",
  "creation": "2025-05-08 21:16:40.449436",
  "custom_blocks": [],
  "docstatus": 0,
@@ -172,7 +172,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-07-02 22:55:15.242556",
+ "modified": "2025-07-09 20:39:02.474099",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "GORM POS",
@@ -184,6 +184,46 @@
  "roles": [],
  "sequence_id": 9.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Double Points Day",
+   "link_to": "Double Points Day",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "OTP CODES",
+   "link_to": "OTP Code",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Sales Invoice",
+   "link_to": "Sales Invoice",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Birthday/Anniversary Settings",
+   "link_to": "Campaign Rule",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Delivery Fee Discount",
+   "link_to": "Delivery Fee Discount",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
   {
    "color": "Grey",
    "doc_view": "List",

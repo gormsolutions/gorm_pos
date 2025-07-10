@@ -31,6 +31,7 @@ def get_customer_details(limit, offset, search=None):
 
     return result
 
+@frappe.whitelist(allow_guest=True)
 def get_loyalty_summary_internal(customer):
     earned = 0
     redeemed = 0
@@ -40,7 +41,7 @@ def get_loyalty_summary_internal(customer):
         "Loyalty Point Entry",
         filters={
             "customer": customer,
-            "expiry_date": [">=", today()]
+            "expiry_date": [">=", frappe.utils.nowdate()]
         },
         fields=["loyalty_points", "loyalty_program"]
     )
@@ -128,6 +129,7 @@ def create_customer(
         doc = frappe.new_doc('Customer')
         doc.naming_series = naming_series
         doc.customer_name = customer_name
+        doc.customer_id = customer_name
         doc.customer = customer_name
         doc.mobile_no = mobile_no
         doc.customer_type = customer_type
