@@ -28,6 +28,11 @@ def get_item_details(limit, offset, search=None, user=None):
     if not permitted_item_groups:
         return []
 
+    # --- Step 2.5: Get selling price list from POS Profile ---
+    selling_price_list = pos_profile.selling_price_list
+    if not selling_price_list:
+        return []
+
     # --- Step 3: Get all child item groups ---
     item_groups_to_filter = permitted_item_groups[:]
     child_groups = frappe.get_all(
@@ -46,7 +51,7 @@ def get_item_details(limit, offset, search=None, user=None):
     filters = [
         ["disabled", "=", 0],
         ["is_sales_item", "=", 1],
-        ["is_stock_item", "=", 1],
+        # ["is_stock_item", "=", 1],
     ]
     if search:
         filters.append(["item_name", "like", f"%{search}%"])
@@ -80,12 +85,18 @@ def get_item_details(limit, offset, search=None, user=None):
             fields=["uom", "conversion_factor"]
         )
 
+        # Other UOMs
         for conv in conversion_details:
             if conv["uom"] != item["stock_uom"]:
                 price = frappe.get_value(
                     "Item Price",
-                    {"item_code": item["item_code"], "selling": 1, "uom": conv["uom"]},
-                    "price_list_rate",
+                    {
+                        "item_code": item["item_code"],
+                        "selling": 1,
+                        "uom": conv["uom"],
+                        "price_list": selling_price_list
+                    },
+                    "price_list_rate"
                 ) or 0.00
                 uom_details.append({
                     "uom": conv["uom"],
@@ -93,16 +104,23 @@ def get_item_details(limit, offset, search=None, user=None):
                     "price": price
                 })
 
+        # Stock UOM price
         stock_uom_price = frappe.get_value(
             "Item Price",
-            {"item_code": item["item_code"], "selling": 1, "uom": item["stock_uom"]},
-            "price_list_rate",
+            {
+                "item_code": item["item_code"],
+                "selling": 1,
+                "uom": item["stock_uom"],
+                "price_list": selling_price_list
+            },
+            "price_list_rate"
         ) or 0.00
         uom_details[0]["price"] = stock_uom_price
         item["price"] = stock_uom_price
 
         item["uom_details"] = uom_details
 
+        # Other warehouse stock
         if frappe.has_permission("Bin", "read", throw=False):
             warehouse_stock = frappe.get_all(
                 "Bin",
