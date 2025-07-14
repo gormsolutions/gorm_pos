@@ -105,12 +105,12 @@ def get_item_details(limit, offset, search=None, user=None):
                 })
 
        # Barcodes
-        # barcodes = frappe.get_all(
-        #     "Item Barcode",
-        #     fields=["barcode", "uom"],
-        #     filters={"parent": item["item_code"]}
-        # )
-        # item["barcodes"] = [{"barcode": b["barcode"], "uom": b["uom"]} for b in barcodes]
+        barcodes = frappe.get_all(
+            "Item Barcode",
+            fields=["barcode", "uom"],
+            filters={"parent": item["item_code"]}
+        )
+        item["barcodes"] = [{"barcode": b["barcode"], "uom": b["uom"]} for b in barcodes]
       
 
         # Stock UOM price
@@ -143,5 +143,191 @@ def get_item_details(limit, offset, search=None, user=None):
                 {"warehouse_name": stock["warehouse"], "stock": stock["actual_qty"]}
                 for stock in warehouse_stock
             ]
+
+    return item_details
+
+
+@frappe.whitelist()
+def get_item_details_buddle(limit, offset, search=None, user=None):
+    from erpnext.stock.utils import get_stock_balance
+
+    current_user = user or frappe.session.user
+
+    # --- Step 1: Find POS Profile assigned to user ---
+    pos_profiles = frappe.get_all("POS Profile", filters={"disabled": 0}, fields=["name"])
+    pos_profile_name = None
+    for profile in pos_profiles:
+        user_found = frappe.get_all(
+            "POS Profile User",
+            filters={"parent": profile.name, "user": current_user},
+            limit=1
+        )
+        if user_found:
+            pos_profile_name = profile.name
+            break
+
+    if not pos_profile_name:
+        return []
+
+    # --- Step 2: Get permitted Item Groups from POS Profile ---
+    pos_profile = frappe.get_doc("POS Profile", pos_profile_name)
+    permitted_item_groups = [row.item_group for row in pos_profile.item_groups if row.item_group]
+
+    if not permitted_item_groups:
+        return []
+
+    # --- Step 2.5: Get selling price list from POS Profile ---
+    selling_price_list = pos_profile.selling_price_list
+    if not selling_price_list:
+        return []
+
+    # --- Step 3: Get all child item groups ---
+    item_groups_to_filter = permitted_item_groups[:]
+    child_groups = frappe.get_all(
+        "Item Group",
+        filters={"parent_item_group": ["in", permitted_item_groups]},
+        fields=["name"]
+    )
+    item_groups_to_filter.extend([grp["name"] for grp in child_groups])
+
+    # --- Step 4: Get default warehouse from POS Profile ---
+    default_warehouse = pos_profile.warehouse
+    if not default_warehouse:
+        frappe.throw("Warehouse is not set in the POS Profile.")
+
+    # --- Step 5: Build item filters ---
+    filters = [
+        ["disabled", "=", 0],
+        ["is_sales_item", "=", 1],
+    ]
+    if search:
+        filters.append(["item_name", "like", f"%{search}%"])
+    if item_groups_to_filter:
+        filters.append(["item_group", "in", item_groups_to_filter])
+    else:
+        return []
+
+    # --- Step 6: Fetch items ---
+    item_details = frappe.get_all(
+        "Item",
+        filters=filters,
+        fields=["item_code", "item_name", "description", "item_group", "image", "is_stock_item", "stock_uom"],
+        start=offset,
+        page_length=limit,
+    )
+
+    # --- Step 7: Enrich items ---
+    for item in item_details:
+        item_code = item["item_code"]
+
+        # Add stock
+        item["stock"] = get_stock_balance(item_code, default_warehouse) or 0
+
+        # UOMs & prices
+        uom_details = [{
+            "uom": item["stock_uom"],
+            "conversion_factor": 1,
+            "price": 0.00
+        }]
+
+        conversion_details = frappe.get_all(
+            "UOM Conversion Detail",
+            filters={"parent": item_code},
+            fields=["uom", "conversion_factor"]
+        )
+
+        for conv in conversion_details:
+            if conv["uom"] != item["stock_uom"]:
+                price = frappe.get_value(
+                    "Item Price",
+                    {
+                        "item_code": item_code,
+                        "selling": 1,
+                        "uom": conv["uom"],
+                        "price_list": selling_price_list
+                    },
+                    "price_list_rate"
+                ) or 0.00
+                uom_details.append({
+                    "uom": conv["uom"],
+                    "conversion_factor": conv.get("conversion_factor", 1),
+                    "price": price
+                })
+
+        # Stock UOM price
+        stock_uom_price = frappe.get_value(
+            "Item Price",
+            {
+                "item_code": item_code,
+                "selling": 1,
+                "uom": item["stock_uom"],
+                "price_list": selling_price_list
+            },
+            "price_list_rate"
+        ) or 0.00
+        uom_details[0]["price"] = stock_uom_price
+        item["price"] = stock_uom_price
+        item["uom_details"] = uom_details
+
+        # Barcodes
+        barcodes = frappe.get_all(
+            "Item Barcode",
+            fields=["barcode", "uom"],
+            filters={"parent": item_code}
+        )
+        item["barcodes"] = [{"barcode": b["barcode"], "uom": b["uom"]} for b in barcodes]
+
+        # Other warehouse stock
+        if frappe.has_permission("Bin", "read", throw=False):
+            warehouse_stock = frappe.get_all(
+                "Bin",
+                filters=[
+                    ["item_code", "=", item_code],
+                    ["warehouse", "!=", default_warehouse],
+                ],
+                fields=["warehouse", "actual_qty"],
+            )
+            item["other_warehouse_stock"] = [
+                {"warehouse_name": stock["warehouse"], "stock": stock["actual_qty"]}
+                for stock in warehouse_stock
+            ]
+
+        # --- Bundle Handling ---
+        bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code})
+        if bundle_name:
+            bundle_items_raw = frappe.get_all(
+                "Product Bundle Item",
+                filters={"parent": bundle_name},
+                fields=["item_code"]
+            )
+
+            bundle_items = []
+            for b in bundle_items_raw:
+                component_code = b["item_code"]
+                component_stock = get_stock_balance(component_code, default_warehouse) or 0.00
+                component_price = frappe.get_value(
+                    "Item Price",
+                    {
+                        "item_code": component_code,
+                        "price_list": selling_price_list,
+                        "selling": 1
+                    },
+                    "price_list_rate"
+                ) or 0.00
+                
+                # Fetch is_stock_item
+                is_stock_item = frappe.get_value("Item", component_code, "is_stock_item") or 0
+
+                bundle_items.append({
+                    "item_code": component_code,
+                    "stock": component_stock,
+                    "price": component_price,
+                    "is_stock_item": is_stock_item
+                })
+
+            item["is_bundle"] = True
+            item["bundle_items"] = bundle_items
+        else:
+            item["is_bundle"] = False
 
     return item_details

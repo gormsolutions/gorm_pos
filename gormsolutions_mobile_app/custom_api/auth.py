@@ -21,8 +21,8 @@ def login(usr, pwd):
             "user": user.name,
             "api_key": user.api_key,
             "api_secret": new_api_secret,
-            "full_name": user.full_name
-        }
+            "full_name": user.full_name,
+            "cost_center": user.cost_center       }
 
         # Ensure `home_page` is not returned
         frappe.local.response.pop('home_page', None)

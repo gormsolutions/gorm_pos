@@ -250,6 +250,7 @@ def create_invoice(
             "doctype": "Sales Invoice",
             "customer": customer_name,
             "remarks": remarks,
+            "custom_from": "GormPos",
             "fulfillment_branch_": fulfillment_branch,
             "cost_center": cost_center,
             "update_stock": update_stock,
