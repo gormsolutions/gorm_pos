@@ -64,7 +64,7 @@ def get_item_details(limit, offset, search=None, user=None):
     item_details = frappe.get_all(
         "Item",
         filters=filters,
-        fields=["item_code", "item_name", "description", "item_group", "image", "stock_uom"],
+        fields=["item_code", "item_name", "description", "item_group", "image", "is_stock_item", "stock_uom"],
         start=offset,
         page_length=limit,
     )
@@ -103,6 +103,15 @@ def get_item_details(limit, offset, search=None, user=None):
                     "conversion_factor": conv.get("conversion_factor", 1),
                     "price": price
                 })
+
+       # Barcodes
+        # barcodes = frappe.get_all(
+        #     "Item Barcode",
+        #     fields=["barcode", "uom"],
+        #     filters={"parent": item["item_code"]}
+        # )
+        # item["barcodes"] = [{"barcode": b["barcode"], "uom": b["uom"]} for b in barcodes]
+      
 
         # Stock UOM price
         stock_uom_price = frappe.get_value(

@@ -5,7 +5,7 @@ from frappe.utils import today
 from frappe import _
 
 @frappe.whitelist(allow_guest=True)
-def get_customer_details(limit,offset, search=None,):
+def get_customer_details(limit, offset, search=None):
     if search:
         filters = [
             ['disabled', '=', 'No'],
