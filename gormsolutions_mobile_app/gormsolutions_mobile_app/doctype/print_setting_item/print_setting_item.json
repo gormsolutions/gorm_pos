@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-16 15:54:22.676550",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "cost_center",
+  "default_customer",
+  "company",
+  "format_header",
+  "format_footer",
+  "logo"
+ ],
+ "fields": [
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "format_header",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Format Header"
+  },
+  {
+   "fieldname": "format_footer",
+   "fieldtype": "Small Text",
+   "label": "Format Footer"
+  },
+  {
+   "fieldname": "default_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Default Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-16 16:30:28.299664",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Print Setting Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

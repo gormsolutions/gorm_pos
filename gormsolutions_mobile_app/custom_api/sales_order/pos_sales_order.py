@@ -131,6 +131,7 @@ def get_sales_orders_by_date(from_date, to_date):
             "status",
             "cost_center",
             "owner",
+            "grand_total",
             "creation"
         ],
         order_by="transaction_date desc"

@@ -198,7 +198,7 @@ def get_item_details_buddle(limit, offset, search=None, user=None):
     # --- Step 5: Build item filters ---
     filters = [
         ["disabled", "=", 0],
-        ["is_sales_item", "=", 1],
+        # ["is_sales_item", "=", 1],
     ]
     if search:
         filters.append(["item_name", "like", f"%{search}%"])

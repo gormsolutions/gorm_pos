@@ -1,35 +1,49 @@
 import frappe
-
-import frappe
-from frappe.utils import today
 from frappe import _
+from frappe.utils import today
 
 @frappe.whitelist(allow_guest=True)
 def get_customer_details(limit, offset, search=None):
-    if search:
-        filters = [
-            ['disabled', '=', 'No'],
-            ['customer_name', 'like', '%' + search + '%']
-        ]
-    else:
-        filters = [['disabled', '=', 'No']]
+    try:
+        # Ensure limit and offset are integers
+        limit = int(limit)
+        offset = int(offset)
 
-    customer_list = frappe.db.get_list(
-        'Customer',
-        filters=filters,
-        fields=['name', 'customer_name', 'mobile_no', 'email_id'],
-        start=offset,
-        page_length=limit
-    )
+        args = []
+        conditions = "disabled = 0"
 
-    result = []
+        if search:
+            search = search.strip()
+            like_search = f"%{search}%"
+            conditions += " AND (customer_name LIKE %s OR REPLACE(mobile_no, ' ', '') LIKE REPLACE(%s, ' ', ''))"
+            args += [like_search, like_search]
 
-    for customer in customer_list:
-        summary = get_loyalty_summary_internal(customer.name)
-        customer.update(summary)
-        result.append(customer)
+        args += [limit, offset]
 
-    return result
+        customer_list = frappe.db.sql(f"""
+            SELECT name, customer_name, mobile_no, email_id, creation
+            FROM `tabCustomer`
+            WHERE {conditions}
+            ORDER BY creation DESC
+            LIMIT %s OFFSET %s
+        """, args, as_dict=True)
+
+        result = []
+        for customer in customer_list:
+            summary = get_loyalty_summary_internal(customer.name)
+            customer.update(summary)
+            result.append(customer)
+
+        return result
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Get Customer Details Failed")
+        return {
+            "status": "error",
+            "message": _("Failed to retrieve customer list"),
+            "error": str(e)
+        }
+
 
 @frappe.whitelist(allow_guest=True)
 def get_loyalty_summary_internal(customer):
@@ -78,10 +92,6 @@ def get_loyalty_summary_internal(customer):
         "remaining_value": remaining_value
     }
 
-
-import frappe
-from frappe import _
-
 import frappe
 from frappe import _
 
@@ -93,52 +103,64 @@ def create_customer(
     naming_series="CUST-.YYYY.-",
     customer_type="Individual",
     customer_group=None,
-    custom_cost_center=None,
     territory=None
 ):
     try:
         current_user = frappe.session.user
 
-        # Fetch cost centers allowed for user from User Permission where is_default=0
-        cost_centers = frappe.get_all(
-            'User Permission',
-            filters={
-                'user': current_user,
-                'allow': 'Cost Center',
-                'is_default': 0
-            },
-            fields=['for_value']
+        # --- Step 1: Check for existing customer with same mobile number ---
+        existing = frappe.db.get_all(
+            "Customer",
+            filters={"mobile_no": mobile_no.strip()},
+            fields=["name", "customer_name", "custom_cost_center"]
         )
 
-        # If no non-default cost centers, fallback to default ones (is_default=1)
-        if not cost_centers:
-            cost_centers = frappe.get_all(
-                'User Permission',
-                filters={
-                    'user': current_user,
-                    'allow': 'Cost Center',
-                    'is_default': 1
-                },
-                fields=['for_value']
-            )
+        if existing:
+            return {
+                "status": "exists",
+                "message": _("A customer with this mobile number already exists."),
+                "customer": existing[0].name,
+                "customer_name": existing[0].customer_name,
+                "custom_cost_center": existing[0].custom_cost_center
+            }
 
-        # Pick first cost center from permissions if custom_cost_center not provided
-        if not custom_cost_center:
-            custom_cost_center = cost_centers[0]['for_value'] if cost_centers else None
+        # --- Step 2: Fetch POS Profile for user ---
+        result = frappe.db.sql("""
+            SELECT ppu.parent
+            FROM `tabPOS Profile User` ppu
+            JOIN `tabPOS Profile` pp ON pp.name = ppu.parent
+            WHERE ppu.user = %s AND ppu.default = 1 AND pp.disabled = 0
+            LIMIT 1
+        """, (current_user,), as_dict=0)
 
+        if not result:
+            return {
+                "status": "error",
+                "message": _("No default POS Profile found for user.")
+            }
+
+        pos_profile = result[0][0]
+
+        # --- Step 3: Get Cost Center ---
+        cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
+        if not cost_center:
+            return {
+                "status": "error",
+                "message": _("No Cost Center configured in the POS Profile.")
+            }
+
+        # --- Step 4: Create Customer ---
         doc = frappe.new_doc('Customer')
         doc.naming_series = naming_series
-        doc.customer_name = customer_name
-        doc.customer_id = customer_name
-        doc.customer = customer_name
-        doc.mobile_no = mobile_no
+        doc.customer_name = customer_name.strip()
+        doc.mobile_no = mobile_no.strip()
         doc.customer_type = customer_type
         doc.customer_group = customer_group
-        doc.custom_cost_center = custom_cost_center
+        doc.custom_cost_center = cost_center
         doc.territory = territory
 
         if email_id:
-            doc.email_id = email_id
+            doc.email_id = email_id.strip()
 
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
@@ -146,8 +168,9 @@ def create_customer(
         return {
             "status": "success",
             "message": _("Customer created successfully"),
-            "customer_name": doc.name,
-            "custom_cost_center": custom_cost_center
+            "customer": doc.name,
+            "customer_name": doc.customer_name,
+            "custom_cost_center": cost_center
         }
 
     except Exception as e:
@@ -157,7 +180,6 @@ def create_customer(
             "message": _("Failed to create customer"),
             "error": str(e)
         }
-
 
 import frappe
 from frappe import _
