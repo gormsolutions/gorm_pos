@@ -5,21 +5,23 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_utvz"
+  "items"
  ],
  "fields": [
   {
-   "fieldname": "section_break_utvz",
-   "fieldtype": "Section Break"
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Stock Transer Setting Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-17 22:41:23.998527",
+ "modified": "2025-07-17 23:21:31.350504",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
- "name": "Stock Transer Setting",
+ "name": "Stock Transfer Setting",
  "owner": "Administrator",
  "permissions": [
   {

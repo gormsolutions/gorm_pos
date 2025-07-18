@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class StockTranserSetting(Document):
+class StockTransferSetting(Document):
 	pass

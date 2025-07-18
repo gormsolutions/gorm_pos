@@ -141,7 +141,7 @@ doc_events = {
 	# "*": {
 	# 	"on_update": "method",
 	# 	"on_cancel": "method",
-	# 	"on_trash": "method"
+	# 	"on_trash": "method" apps//gormsolutions_mobile_app/custom_api/stock/stock_transfer_setting.py
 	# }
 	"Sales Invoice": {
 		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname",
@@ -157,6 +157,9 @@ doc_events = {
 
 	"Sales Order": {
         "before_save": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount"
+    },
+	 "Stock Entry": {
+        "before_submit": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer"
     },
 }
 
