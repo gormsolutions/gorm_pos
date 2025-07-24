@@ -4,10 +4,21 @@
   "doctype": "Client Script",
   "dt": "Lead",
   "enabled": 1,
-  "modified": "2025-01-15 02:00:06.578742",
+  "modified": "2025-02-25 02:29:47.677120",
   "module": "Gormsolutions Mobile App",
   "name": "Test Items",
-  "script": "frappe.ui.form.on('Lead', {\r\n    // Triggered when the sustain field is changed\r\n    status: function(frm) {\r\n        // Check if the sustain field has a value\r\n        if (!frm.doc.sustain) {\r\n            // Define the parameters for the API call\r\n            const limit = 09-01-2025; // Limit of items to fetch\r\n            const offset = 09-01-2025; // Starting point for pagination\r\n            const user = \"Mbale Gas Store - SE\"; // Example user (can be dynamic as needed)\r\n\r\n            // Make the API call to fetch item details\r\n            frappe.call({\r\n                method: 'petro_station_app.custom_api.gas_invoice.daily_sales.fetch_invoices_and_stock_entries',\r\n                args: {\r\n                    start_date: limit,\r\n                    end_date: offset,\r\n                    warehouse:user\r\n                \r\n                },\r\n                callback: function(response) {\r\n                    console.log(response)\r\n               \r\n                },\r\n                error: function(error) {\r\n                    // Handle API call failure\r\n                    frappe.msgprint(__('Failed to fetch item details.'));\r\n                    console.error('Error fetching item details:', error);\r\n                }\r\n            });\r\n        }\r\n    }\r\n});\r\n",
+  "script": "frappe.ui.form.on('Lead', {\r\n    // Triggered when the sustain field is changed\r\n    status: function(frm) {\r\n        // Check if the sustain field has a value\r\n        if (!frm.doc.sustain) {\r\n            // Define the parameters for the API call\r\n            const limit = \"2025-02-20\"; // Limit of items to fetch\r\n            const offset = \"2025-02-25\"; // Starting point for pagination\r\n            const user = \"Mbale Gas Store - SE\"; // Example user (can be dynamic as needed)\r\n\r\n            // Make the API call to fetch item details\r\n            frappe.call({\r\n                method: 'petro_station_app.custom_api.gas_invoice.stock_balances.fetch_actual_qty_grouped_by_warehouse',\r\n                args: {\r\n                     warehouse_filter:\"Mbale Gas Store\"\r\n                \r\n                },\r\n                callback: function(response) {\r\n                    console.log(response)\r\n               \r\n                },\r\n                error: function(error) {\r\n                    // Handle API call failure\r\n                    frappe.msgprint(__('Failed to fetch item details.'));\r\n                    console.error('Error fetching item details:', error);\r\n                }\r\n            });\r\n        }\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Order",
+  "enabled": 1,
+  "modified": "2025-02-02 03:21:00.697999",
+  "module": "Gormsolutions Mobile App",
+  "name": "Whatapp",
+  "script": "frappe.ui.form.on('Sales Order', {\r\n    refresh: function (frm) {\r\n        frm.add_custom_button('Send WhatsApp Template', function () {\r\n            const phone_number = frm.doc.test_tels;  // Replace with your phone field\r\n\r\n            frappe.call({\r\n                method: 'gormsolutions_mobile_app.custom_api.whatsapp_api.api.send_whatsapp_template',\r\n                args: {\r\n                    to: phone_number\r\n                },\r\n                callback: function (response) {\r\n                    if (response.message.status === \"success\") {\r\n                        frappe.msgprint(response.message.message);\r\n                    } else {\r\n                        frappe.msgprint(\"Failed to send WhatsApp template message.\");\r\n                    }\r\n                }\r\n            });\r\n        });\r\n    }\r\n});\r\n",
   "view": "Form"
  }
 ]

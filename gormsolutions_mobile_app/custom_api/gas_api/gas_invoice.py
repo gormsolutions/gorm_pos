@@ -4,105 +4,114 @@ from frappe.exceptions import PermissionError
 from datetime import datetime, timedelta
 
 @frappe.whitelist(allow_guest=True)
-def create_gas_invoice(customer, items, include_payments=None, mode_of_payment=None):
+def create_gas_invoice(customer, items, include_payments=None, remarks=None, mode_of_payment=None):
     try:
-        # Get the current user 
         current_user = frappe.session.user
 
-        # Get permitted cost centers for the current user
         cost_center_permitted = frappe.get_all(
             "User Permission",
             filters={"user": current_user, "allow": "Cost Center"},
             fields=["for_value"]
         )
-
-        # Default cost center to use (fetched from permissions)
         default_cost_centers = cost_center_permitted[0]['for_value'] if cost_center_permitted else None
 
-        # Fetch User Permission records for 'Warehouse' allowed for the current user
         fallback_warehouse = frappe.get_all(
             'User Permission',
-            filters={'user': current_user, 'allow': 'Warehouse',"is_default":1},
+            filters={'user': current_user, 'allow': 'Warehouse', "is_default": 1},
             fields=['for_value']
         )
-
-        # Determine the fallback warehouse value
         fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else None
 
-        # Fetch allowed Price List
         price_list_permissions = frappe.get_all(
             "User Permission",
-            filters={"user": current_user, "allow": "Price List"},
+            filters={"user": current_user, "allow": "Price List", "is_default": 1},
             fields=["for_value"]
         )
         price_list = price_list_permissions[0]['for_value'] if price_list_permissions else None
 
-        # Fetch 'Accepted Store Empties' for the current user
         store_warehouse_empties = frappe.get_all(
             'User Permission',
-            filters={'user': current_user,"is_default":0,'allow': 'Warehouse'},
+            filters={'user': current_user, "is_default": 0, 'allow': 'Warehouse'},
             fields=['for_value']
         )
         default_warehouse_empties = store_warehouse_empties[0]['for_value'] if store_warehouse_empties else None
 
-        # Get today's date and time for setting in the document
-        today_date = datetime.today().date()  # Get current date
-        today_time = datetime.now().strftime("%H:%M:%S")  # Get current time
-
-        # Calculate the due date (10 days from today)
+        today_date = datetime.today().date()
+        today_time = datetime.now().strftime("%H:%M:%S")
         due_date = today_date + timedelta(days=10)
 
-        # Initialize totals
         total_qty = 0
         grand_totals = 0
+        should_submit = True  # default to True
 
-        # Creating a new Gas Invoices document
         gas_invoice = frappe.get_doc({
             "doctype": "Gas Invoices",
             "customer": customer,
-            "station": default_cost_centers,  # Assign the single value here
+            "remarks": remarks,
+            "station": default_cost_centers,
             "price_list": price_list,
             "mode_of_payment": mode_of_payment,
             "store_for_empties": default_warehouse_empties,
             "store": fallback_warehouse,
             "date": today_date,
-            # "employee": staff,
             "time": today_time,
             "include_payments": include_payments,
             "due_date": due_date
         })
 
-        # Adding items to the child table 'items' and calculating totals
         for item in items:
+            item_code = item.get("item_code")
             qty = item.get("qty", 0)
-            
             rate = item.get("rate", 0)
-            amount = qty * rate
+            discount = item.get("discount_amount") or 0
+            discounted_rate = rate - discount
+            amount = qty * discounted_rate
 
-            # Add item to the child table
+            # Fetch UOM
+            stock_uom = frappe.db.get_value("Item", item_code, "stock_uom")
+            uom = item.get("uom") or ("Nos" if item_code == "HORSE PIPE" else stock_uom)
+
+            # Check if it's a Product Bundle
+            if frappe.db.exists("Product Bundle", item_code):
+                # Get bundled items
+                bundled_items = frappe.get_all(
+                    "Product Bundle Item",
+                    filters={"parent": item_code},
+                    fields=["item_code", "qty"]
+                )
+                for b in bundled_items:
+                    total_required = b["qty"] * qty
+                    actual_stock = frappe.db.get_value("Bin", {
+                        "item_code": b["item_code"],
+                        "warehouse": fallback_warehouse
+                    }, "actual_qty") or 0
+
+                    if actual_stock < total_required:
+                        should_submit = False  # Not enough stock for bundle item
+                        frappe.msgprint(f"Insufficient stock for bundled item {b['item_code']}. Required: {total_required}, Available: {actual_stock}")
+
             gas_invoice.append("items", {
-                "item_code": item.get("item_code"),
+                "item_code": item_code,
                 "qty": qty,
                 "rate": rate,
+                "uom": uom,
                 "amount": amount
             })
 
-            # Update total quantity and grand total
             total_qty += qty
             grand_totals += amount
 
-        # Set the totals in the main document
         gas_invoice.total_qty = total_qty
         gas_invoice.grand_totals = grand_totals
 
-        # Insert the Gas Invoices document
         gas_invoice.insert(ignore_permissions=True)
-        gas_invoice.submit()
 
-        # Explicit commit to ensure data is saved in the DB
+        if should_submit:
+            gas_invoice.submit()
+
         frappe.db.commit()
-
         return gas_invoice.name
+
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Gas Invoice Creation Error")
         return f"Error: {str(e)}"

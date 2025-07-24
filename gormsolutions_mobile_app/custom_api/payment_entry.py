@@ -2,7 +2,7 @@ import frappe
 import json
 
 @frappe.whitelist(allow_guest=True)
-def create_payment(sales_invoice,mode_of_payment,paid_amount):
+def create_payment(sales_invoice,mode_of_payment,paid_amount,reference_no=None):
     mode_of_pay_doc = frappe.get_doc("Mode of Payment",mode_of_payment)
     sales_invoice_doc = frappe.get_doc("Sales Invoice",sales_invoice)
     # return mode_of_pay_doc.accounts[0].default_account,sales_invoice.customer
@@ -13,6 +13,8 @@ def create_payment(sales_invoice,mode_of_payment,paid_amount):
             "payment_type":"Receive",
             "party_type":"Customer",
             "party":sales_invoice_doc.customer,
+            "reference_no":reference_no,
+            "reference_date":sales_invoice_doc.posting_date,
             "mode_of_payment":mode_of_payment,
             "paid_to":mode_of_pay_doc.accounts[0].default_account,
             "paid_amount":paid_amount,
