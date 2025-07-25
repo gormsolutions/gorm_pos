@@ -1,1 +1,68 @@
-[]
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Item",
+  "enabled": 0,
+  "modified": "2025-05-21 19:57:06.337120",
+  "module": "Gormsolutions Mobile App",
+  "name": "update UOM",
+  "script": "frappe.ui.form.on(\"Item\", {\r\n    refresh: function(frm) {\r\n        frm.add_custom_button(\"Update All Item Prices UOM\", function() {\r\n            frappe.call({\r\n                method: \"gormsolutions_mobile_app.custom_api.update_uom_price.update_all_item_prices_uom\",\r\n                callback: function(response) {\r\n                    if (response.message) {\r\n                        frappe.msgprint(__(response.message));\r\n                    }\r\n                }\r\n            });\r\n        }).addClass(\"btn-primary\");\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Invoice",
+  "enabled": 1,
+  "modified": "2025-03-08 14:02:26.245238",
+  "module": "Gormsolutions Mobile App",
+  "name": "Brought Back",
+  "script": "frappe.ui.form.on(\"Purchase Invoice\", {\r\n    refresh: function(frm) {\r\n        if (!frm.is_new() && frm.doc.status === \"Return\" && frm.doc.custom_suplier_return_status !== \"Items Compensated\") {\r\n            frm.add_custom_button(\"Item Compansation\", function() {\r\n                frappe.new_doc(\"Purchase Return Management\", {\r\n                    supplier: frm.doc.supplier,\r\n                    reference_purchase_invoice: frm.doc.name\r\n                });\r\n            }, \"Create\");\r\n        }\r\n    }\r\n});\r\n\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Stock Reconciliation",
+  "enabled": 1,
+  "modified": "2025-03-08 16:08:21.347810",
+  "module": "Gormsolutions Mobile App",
+  "name": "Valuation",
+  "script": "frappe.ui.form.on('Stock Reconciliation', {\r\n    refresh: function(frm) {\r\n        // Add a custom button\r\n        frm.add_custom_button(__('Fetch Valuation Rate'), function() {\r\n            // Fetch Valuation Rates and set them in the table\r\n            if (frm.doc.items && frm.doc.items.length > 0) {\r\n                // Get items without a valuation rate\r\n                const missing_rates = frm.doc.items\r\n                    .filter(item => !item.valuation_rate)\r\n                    .map(item => item.item_code);\r\n\r\n                if (missing_rates.length > 0) {\r\n                    frappe.call({\r\n                        method: 'frappe.client.get_list',\r\n                        args: {\r\n                            doctype: 'Item',\r\n                            filters: {\r\n                                name: ['in', missing_rates]\r\n                            },\r\n                            fields: ['name', 'valuation_rate']\r\n                        },\r\n                        callback: function(r) {\r\n                            console.log(r)\r\n                            if (r.message) {\r\n                                const valuation_map = {};\r\n                                r.message.forEach(item => {\r\n                                    valuation_map[item.name] = item.valuation_rate;\r\n                                });\r\n\r\n                                let updated = false;\r\n                                frm.doc.items.forEach(row => {\r\n                                    if (!row.valuation_rate && valuation_map[row.item_code] !== undefined) {\r\n                                        row.valuation_rate = valuation_map[row.item_code];\r\n                                        updated = true;\r\n                                    }\r\n                                });\r\n\r\n                                if (updated) {\r\n                                    frm.refresh_field('items');\r\n                                    frappe.msgprint(__('Missing Valuation Rates have been updated. Remember to save the document.'));\r\n                                } else {\r\n                                    frappe.msgprint(__('No missing Valuation Rates were found to update.'));\r\n                                }\r\n                            }\r\n                        }\r\n                    });\r\n                } else {\r\n                    frappe.msgprint(__('All items already have Valuation Rates set.'));\r\n                }\r\n            } else {\r\n                frappe.msgprint(__('Please add items to the table first.'));\r\n            }\r\n        }, __('Actions'));\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Item",
+  "enabled": 0,
+  "modified": "2025-05-21 19:28:45.057922",
+  "module": "Gormsolutions Mobile App",
+  "name": "Create price item",
+  "script": "frappe.ui.form.on('Item', {\r\n    // Trigger when the Item document is saved or refreshed\r\n    refresh: function(frm) {\r\n        // Add a custom button to trigger the price creation\r\n        frm.add_custom_button(__('Create Item Prices'), function() {\r\n            create_item_prices_for_all_items();\r\n        });\r\n    }\r\n});\r\n\r\n// Function to create item prices for all items\r\nfunction create_item_prices_for_all_items() {\r\n    frappe.call({\r\n        method: 'gormsolutions_mobile_app.custom_api.stock.material_transfer.create_item_prices_for_all_items',\r\n        callback: function(response) {\r\n            if (response.message) {\r\n                frappe.msgprint(__('Item prices created successfully.'));\r\n            } else {\r\n                frappe.msgprint(__('No prices created.'));\r\n            }\r\n        },\r\n        error: function(error) {\r\n            frappe.msgprint(__('Error occurred while creating item prices.'));\r\n        }\r\n    });\r\n}\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Item",
+  "enabled": 0,
+  "modified": "2025-05-21 19:28:35.868749",
+  "module": "Gormsolutions Mobile App",
+  "name": "fetch item",
+  "script": "frappe.ui.form.on('Item', {\r\n    refresh: function(frm) {\r\n        // Add a custom button to fetch items without prices\r\n        frm.add_custom_button(__('Export Items Without Prices'), function() {\r\n            frappe.call({\r\n                method: 'gormsolutions_mobile_app.custom_api.stock.material_transfer.fetch_items_without_prices',\r\n                callback: function(response) {\r\n                    if (response.message) {\r\n                        const file_url = response.message;\r\n                        // Open the file URL to download\r\n                        window.open(file_url, '_blank');\r\n                    } else {\r\n                        frappe.msgprint(__('No items without prices found.'));\r\n                    }\r\n                },\r\n                error: function(error) {\r\n                    frappe.msgprint(__('Error occurred while fetching items without prices.'));\r\n                }\r\n            });\r\n        });\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Item",
+  "enabled": 1,
+  "modified": "2025-05-21 20:08:41.491854",
+  "module": "Gormsolutions Mobile App",
+  "name": "update uom convesion factor",
+  "script": "frappe.ui.form.on(\"Item\", {\r\n    refresh(frm) {\r\n        frm.add_custom_button(\"Update All Item Price UOMs\", () => {\r\n            frappe.call({\r\n                method: \"gormsolutions_mobile_app.custom_api.update_uom_price.update_all_item_prices_uoms\",\r\n                freeze: true,\r\n                freeze_message: \"Updating all item price UOMs...\",\r\n                callback: function(r) {\r\n                    if (!r.exc) {\r\n                        frappe.msgprint(r.message);\r\n                    }\r\n                }\r\n            });\r\n        });\r\n    }\r\n});\r\n",
+  "view": "Form"
+ }
+]

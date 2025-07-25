@@ -199,8 +199,6 @@ def create_invoices(customer_name, paid_amount, items, remarks=None,
 
 
 @frappe.whitelist()
-
-
 def get_sales_payment_summary(start_date, end_date):
     try:
         # Get the logged-in user's full name

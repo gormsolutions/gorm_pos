@@ -25,7 +25,7 @@ from frappe import _
 @frappe.whitelist()
 def update_items_from_stock_reco():
     stock_reco_list = [
-        "MAT-RECO-2025-00046"
+        "MAT-RECO-2025-00076"
     ]
 
     updated_items = set()

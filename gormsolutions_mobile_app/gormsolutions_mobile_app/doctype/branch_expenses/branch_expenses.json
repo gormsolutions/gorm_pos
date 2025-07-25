@@ -1,5 +1,4 @@
 {
- "_comments": "[{\"comment\": \"Action Failed<br><br><pre><code>Traceback (most recent call last):\\n  File \\\"apps/frappe/frappe/mod...\", \"by\": \"Administrator\", \"name\": \"d154kbr47r\"}]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "naming_series:",
@@ -16,7 +15,10 @@
   "section_break_oeao",
   "items",
   "grand_total",
-  "amended_from"
+  "amended_from",
+  "setting_tab",
+  "company",
+  "account"
  ],
  "fields": [
   {
@@ -83,12 +85,31 @@
    "label": "Employee",
    "options": "Employee",
    "reqd": 1
+  },
+  {
+   "fieldname": "setting_tab",
+   "fieldtype": "Tab Break",
+   "label": "setting"
+  },
+  {
+   "default": "SANYU 2021 DISTRIBUTES LTD",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "default": "2170 - Creditors - SD",
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-12-22 20:39:53.731576",
+ "modified": "2025-07-24 21:14:44.199256",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Branch Expenses",

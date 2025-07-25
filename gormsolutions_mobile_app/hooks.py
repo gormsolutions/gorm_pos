@@ -145,6 +145,9 @@ doc_events = {
 	# }
     "Item": {
         "validate": "gormsolutions_mobile_app.custom_api.disable.update_item_price"
+    },
+    "Purchase Invoice": {
+        "on_submit": "gormsolutions_mobile_app.custom_api.purchase_invoice.update_item_buying.update_item_buying_price"
     }
 }
 

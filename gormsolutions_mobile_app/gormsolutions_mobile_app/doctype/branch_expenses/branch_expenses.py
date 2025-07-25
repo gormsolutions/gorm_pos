@@ -23,7 +23,7 @@ class BranchExpenses(Document):
         # Create new Journal Entry
         journal_entry = frappe.new_doc('Journal Entry')
         journal_entry.voucher_type = 'Journal Entry'
-        journal_entry.company = 'SANYU 2021 DISTRIBUTES LTD'
+        journal_entry.company = self.company
         journal_entry.posting_date = self.date
         journal_entry.custom_employee = self.employee
         journal_entry.custom_branch_expense_id = self.name
@@ -36,7 +36,7 @@ class BranchExpenses(Document):
             
             # Debit Entry
             journal_entry.append('accounts', {
-                'account': "2170 - Creditors - SD",
+                'account': self.account,
                 'party_type': item.party_type,
                 'party': item.party,
                 'description': item.description,
@@ -55,7 +55,7 @@ class BranchExpenses(Document):
             
             # Additional Debit Entry
             journal_entry.append('accounts', {
-                'account': "2170 - Creditors - SD",
+                'account': self.account,
                 'party_type': item.party_type,
                 'description': item.description,
                 'party': item.party,
