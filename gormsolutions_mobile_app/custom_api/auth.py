@@ -1,6 +1,7 @@
-import frappe
-from frappe import throw, msgprint, _
+import frappe # type: ignore
+from frappe import throw, msgprint, _ # type: ignore
 import traceback
+from frappe import _ # type: ignore
 
 @frappe.whitelist(allow_guest=True)
 def login(usr, pwd):
@@ -45,9 +46,86 @@ def login(usr, pwd):
         }
 
 
+
+# @frappe.whitelist(allow_guest=True)
+# def sign_up(first_name, email, password):
+#     # Check if the email is already registered
+#     if frappe.db.exists("User", email):
+#         frappe.throw(_("Email already exists."))
+
+#     # Create a new user
+#     user = frappe.new_doc("User")
+#     user.first_name = first_name
+#     user.email = email
+#     user.username = email  # Use email as the username
+#     user.new_password = password  # Set the user's password
+#     user.role_profile_name = "portal"  # Set the user's role_profile_name
+#     user.enabled = 1  # Enable the user
+
+#     try:
+#         # Insert the new user, ignoring permissions
+#         user.insert(ignore_permissions=True)
+        
+#         # Set the full name for the customer creation
+#         full_name = f"{first_name} {user.last_name or ''}".strip()
+        
+#         # Check if a Customer linked to this user email already exists
+#         if not frappe.db.exists("Customer", {"custom_link_user_email": email}):
+#             # Create a new Customer document
+#             new_customer = frappe.get_doc({
+#                 'doctype': 'Customer',
+#                 'customer_name': full_name,  # Set the full name as customer name
+#                 'customer_group': 'All Customer Groups',  # Specify a valid customer group
+#                 'territory': 'All Territories',  # Specify a valid territory
+#                 'custom_link_user_email': email  # Link the customer to the user email
+#             })
+            
+#             new_customer.insert(ignore_permissions=True)  # Insert the customer document
+
+#         # Commit changes to the database
+#         frappe.db.commit()
+        
+#     except frappe.PermissionError:
+#         frappe.throw(_("Insufficient permissions to create user."))
+
+#     # Optionally, send a welcome email to the user
+#     frappe.sendmail(
+#         recipients=[email],
+#         subject=_("Welcome to ERPNext!"),
+#         message=_("Thank you for signing up, {}! You can now log in using your email and password.").format(first_name)
+#     )
+
+#     return {
+#         "message": _("User created successfully.")
+#     }
+
+
+def force_session_refresh_without_logout(user):
+    """Regenerate CSRF token without logging the user out."""
+    # Ensure the user is authenticated
+    if frappe.session.user == user and user != "Guest":
+        # Generate and return a new CSRF token without logout
+        return frappe.sessions.get_csrf_token()
+    else:
+        raise frappe.PermissionError("User is not logged in or session is invalid.")
+    
+    
+@frappe.whitelist(allow_guest=True)
+def regenerate_session():
+    """Custom endpoint to regenerate the session and provide a new CSRF token."""
+    user = frappe.session.user
+    if user == "Guest":
+        return {"error": "Not logged in"}
+    
+    # Regenerate the CSRF token
+    try:
+        csrf_token = force_session_refresh_without_logout(user)
+        return {"csrf_token": csrf_token}
+    except frappe.PermissionError as e:
+        return {"error": str(e)}
+    
+    
 # signup.py
-import frappe
-from frappe import _
 
 @frappe.whitelist(allow_guest=True)
 def sign_up(first_name, email, password):

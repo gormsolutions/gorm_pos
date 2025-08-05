@@ -1,13 +1,17 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:company",
  "creation": "2025-07-16 15:51:05.634320",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "format_name",
+  "company",
   "barner",
-  "item"
+  "item",
+  "settings_tab",
+  "loyality_mop"
  ],
  "fields": [
   {
@@ -25,15 +29,36 @@
    "fieldname": "barner",
    "fieldtype": "Small Text",
    "label": "Barner"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "unique": 1
+  },
+  {
+   "fieldname": "settings_tab",
+   "fieldtype": "Tab Break",
+   "label": "Settings"
+  },
+  {
+   "fieldname": "loyality_mop",
+   "fieldtype": "Link",
+   "label": "Mode of Payment(for royality points)",
+   "options": "Mode of Payment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-17 11:15:18.387498",
+ "modified": "2025-08-05 13:57:00.286097",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Station Print Setting",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -50,7 +75,9 @@
   }
  ],
  "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "company"
 }

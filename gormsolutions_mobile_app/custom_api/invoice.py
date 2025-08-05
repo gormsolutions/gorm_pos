@@ -83,7 +83,7 @@ def create_invoice(
         return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
 
     # Get POS Profile info (only enabled ones)
-    pos_profile = pos_warehouse = fulfillment_branch = cost_center = None
+    pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
     if is_pos:
         result = frappe.db.sql("""
             SELECT ppu.parent
@@ -98,6 +98,7 @@ def create_invoice(
             pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
             fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
             cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
+            company = frappe.db.get_value("POS Profile", pos_profile, "company")
         else:
             return {"error": f"No enabled default POS Profile found for user '{current_user}'."}
 
@@ -135,12 +136,13 @@ def create_invoice(
             return {"error": f"Customer {customer_name} is not enrolled in any Loyalty Program."}
 
         conversion_factor = frappe.db.get_value("Loyalty Program", loyalty_program, "conversion_factor")
+        royality_mode_of_payment = frappe.db.get_value("Loyalty Program", loyalty_program, "custom_mode_of_payment")
         if not conversion_factor:
             return {"error": f"No conversion factor found for Loyalty Program {loyalty_program}."}
 
         loyalty_amount = flt(loyalty_points) * flt(conversion_factor)
         payment_entries.append({
-            "mode_of_payment": "Redeem Loyalty Points",
+            "mode_of_payment": royality_mode_of_payment,
             "amount": loyalty_amount,
             "reference_no": "Loyalty"
         })
@@ -150,6 +152,7 @@ def create_invoice(
         invoice_doc_data = {
             "doctype": "Sales Invoice",
             "customer": customer_name,
+            "company": company,
             "remarks": remarks,
             "custom_from": "GormPos",
             "fulfillment_branch_": fulfillment_branch,
@@ -179,7 +182,6 @@ def create_invoice(
         return {"error": str(e)}
 
 @frappe.whitelist()
-
 def get_sales_payment_summary(start_date, end_date):
     try:
         # Get the logged-in user's full name
@@ -216,7 +218,7 @@ def get_sales_payment_summary(start_date, end_date):
         return data
     except Exception as e:
         return {"error": str(e)}
-    
+
 @frappe.whitelist()
 def cancel_invoice(name=None):
     try:
@@ -235,7 +237,7 @@ def cancel_invoice(name=None):
 
         return {
             "message": f"Invoice {name} has been canceled",
-            "status": "success"
+            "status": "successfully posted"
         }
     except Exception as e:
         return {
@@ -248,7 +250,7 @@ def get_sales_invoice(docname):
     invoice_doc = frappe.get_doc("Sales Invoice",docname)
     return invoice_doc
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def update_invoice(docname,items):
     invoice_doc = frappe.get_doc("Sales Invoice",docname)
     items = json.loads(items)

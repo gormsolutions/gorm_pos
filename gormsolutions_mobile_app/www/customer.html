@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Download Customer CSV with Progress</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    #progress-container {
+      margin-top: 20px;
+      width: 100%;
+      background-color: #f3f3f3;
+      border-radius: 6px;
+      height: 25px;
+      overflow: hidden;
+      border: 1px solid #ccc;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #4caf50;
+      transition: width 0.3s;
+    }
+
+    #status-text {
+      margin-top: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="downloadBtn" onclick="downloadCSV()">Download Customers CSV</button>
+
+  <div id="progress-container" style="display:none;">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="status-text"></div>
+
+  <script>
+    async function downloadCSV() {
+      const apiBase = 'https://erp.divacakes.com.ng/api/method/gormsolutions_mobile_app.custom_api.customer.get_customer_details';
+      const limit = 1000;
+      let offset = 0;
+      let total = 0;
+      let downloaded = 0;
+      const customers = [];
+
+      const headers = [
+        'customer_name', 'name', 'mobile_no', 'email_id',
+        'creation', 'loyalty_program', 'earned_points',
+        'redeemed_points', 'remaining_points', 'conversion_rate',
+        'redeemed_value', 'remaining_value'
+      ];
+
+      document.getElementById("downloadBtn").disabled = true;
+      document.getElementById("progress-container").style.display = 'block';
+      document.getElementById("status-text").textContent = 'Starting download...';
+
+      try {
+        // Step 1: Get total count
+        const firstPage = await fetch(`${apiBase}?limit=${limit}&offset=${offset}`);
+        const firstData = await firstPage.json();
+
+        if (!firstData || !firstData.message || !Array.isArray(firstData.message.customers)) {
+          alert("Invalid response");
+          return;
+        }
+
+        customers.push(...firstData.message.customers);
+        total = firstData.message.total_count || firstData.message.customers.length;
+        downloaded = customers.length;
+        updateProgress(downloaded, total);
+
+        // Step 2: Fetch remaining pages
+        offset += limit;
+
+        while (downloaded < total) {
+          const response = await fetch(`${apiBase}?limit=${limit}&offset=${offset}`);
+          const result = await response.json();
+          if (result.message && result.message.customers.length > 0) {
+            customers.push(...result.message.customers);
+            downloaded += result.message.customers.length;
+            updateProgress(downloaded, total);
+            offset += limit;
+          } else {
+            break;
+          }
+        }
+
+        // Step 3: Generate CSV
+        const csvRows = [headers.join(',')];
+
+        customers.forEach(data => {
+          const customer = {};
+          for (const header of headers) {
+            const value = data[header] ?? '';
+            switch (header) {
+              case 'earned_points':
+              case 'redeemed_points':
+              case 'remaining_points':
+                customer[header] = parseInt(value) || 0;
+                break;
+              case 'conversion_rate':
+              case 'redeemed_value':
+              case 'remaining_value':
+                customer[header] = parseFloat(value) || 0.0;
+                break;
+              default:
+                customer[header] = value;
+            }
+          }
+
+          const row = headers.map(h => `"${(customer[h] ?? '').toString().replace(/"/g, '""')}"`).join(',');
+          csvRows.push(row);
+        });
+
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "customers.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        document.getElementById("status-text").textContent = `✅ Download complete: ${downloaded} customers`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status-text").textContent = '❌ Error downloading customers.';
+      } finally {
+        document.getElementById("downloadBtn").disabled = false;
+      }
+    }
+
+    function updateProgress(current, total) {
+      const percent = Math.min(100, Math.floor((current / total) * 100));
+      document.getElementById("progress-bar").style.width = percent + '%';
+      document.getElementById("status-text").textContent = `Downloading... ${current} of ${total} (${percent}%)`;
+    }
+  </script>
+
+</body>
+</html>

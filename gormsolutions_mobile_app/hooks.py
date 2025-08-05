@@ -158,9 +158,17 @@ doc_events = {
 	"Sales Order": {
         "before_save": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount"
     },
-	 "Stock Entry": {
-        "before_submit": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer"
-    },
+
+    # "Stock Entry": {
+    #     "before_save": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer",
+    #     "before_submit":[ 
+    #         "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_before_submit",
+    #         "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer_source_warehouse",
+            
+   
+    #     ],
+    # }
+    
 }
 
 # Scheduled Tasks

@@ -1,33 +1,137 @@
-import frappe
-from frappe import _
-from frappe.utils import today
+# import frappe
+# from frappe import _
+# from frappe.utils import today
+
+# @frappe.whitelist(allow_guest=True)
+# def get_customer_details(limit, offset, search=None):
+#     try:
+#         # Ensure limit and offset are integers
+#         limit = int(limit)
+#         offset = int(offset)
+
+#         args = []
+#         conditions = "disabled = 0 AND posa_referral_company = 'DIVA CAKES'"
+
+#         if search:
+#             search = search.strip()
+#             like_search = f"%{search}%"
+#             conditions += " AND (customer_name LIKE %s OR REPLACE(mobile_no, ' ', '') LIKE REPLACE(%s, ' ', ''))"
+#             args += [like_search, like_search]
+
+#         args += [limit, offset]
+
+#         customer_list = frappe.db.sql(f"""
+#             SELECT name, customer_name, mobile_no, email_id, creation
+#             FROM `tabCustomer`
+#             WHERE {conditions}
+#             ORDER BY creation DESC
+#             LIMIT %s OFFSET %s
+#         """, args, as_dict=True)
+
+#         result = []
+#         for customer in customer_list:
+#             summary = get_loyalty_summary_internal(customer.name)
+#             customer.update(summary)
+#             result.append(customer)
+
+#         return result
+
+#     except Exception as e:
+#         frappe.log_error(frappe.get_traceback(), "Get Customer Details Failed")
+#         return {
+#             "status": "error",
+#             "message": _("Failed to retrieve customer list"),
+#             "error": str(e)
+#         }
+
+import frappe # type: ignore
+from frappe import _ # type: ignore
+from frappe.utils import today # type: ignore
 
 @frappe.whitelist(allow_guest=True)
-def get_customer_details(limit, offset, search=None):
+def get_customer_details(limit, offset, search=None, last_sync=None):
     try:
-        # Ensure limit and offset are integers
         limit = int(limit)
         offset = int(offset)
 
         args = []
-        conditions = "disabled = 0"
+        conditions = "disabled = 0 AND posa_referral_company = 'DIVA CAKES'"
 
+        # If search is given
         if search:
             search = search.strip()
             like_search = f"%{search}%"
             conditions += " AND (customer_name LIKE %s OR REPLACE(mobile_no, ' ', '') LIKE REPLACE(%s, ' ', ''))"
             args += [like_search, like_search]
 
+        # If last_sync is given
+        if last_sync:
+            conditions += " AND modified > %s"
+            args.append(last_sync)
+
+        # Add pagination args
         args += [limit, offset]
 
+        # Main query
         customer_list = frappe.db.sql(f"""
-            SELECT name, customer_name, mobile_no, email_id, creation
+            SELECT name, customer_name, mobile_no, email_id, creation, modified
             FROM `tabCustomer`
             WHERE {conditions}
-            ORDER BY creation DESC
+            ORDER BY modified DESC
             LIMIT %s OFFSET %s
         """, args, as_dict=True)
 
+        # Add loyalty summary
+        result = []
+        for customer in customer_list:
+            summary = get_loyalty_summary_internal(customer.name)
+            customer.update(summary)
+            result.append(customer)
+
+        return result
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Get Customer Details Failed")
+        return {
+            "status": "error",
+            "message": _("Failed to retrieve customer list"),
+            "error": str(e)
+        }
+
+@frappe.whitelist(allow_guest=True)
+def get_customer_details_crave(limit, offset, search=None, last_sync=None):
+    try:
+        limit = int(limit)
+        offset = int(offset)
+
+        args = []
+        conditions = "disabled = 0 AND posa_referral_company = 'CRAVE CITY MEGA LIMITED'"
+
+        # If search is given
+        if search:
+            search = search.strip()
+            like_search = f"%{search}%"
+            conditions += " AND (customer_name LIKE %s OR REPLACE(mobile_no, ' ', '') LIKE REPLACE(%s, ' ', ''))"
+            args += [like_search, like_search]
+
+        # If last_sync is given
+        if last_sync:
+            conditions += " AND modified > %s"
+            args.append(last_sync)
+
+        # Add pagination args
+        args += [limit, offset]
+
+        # Main query
+        customer_list = frappe.db.sql(f"""
+            SELECT name, customer_name, mobile_no, email_id, creation, modified
+            FROM `tabCustomer`
+            WHERE {conditions}
+            ORDER BY modified DESC
+            LIMIT %s OFFSET %s
+        """, args, as_dict=True)
+
+        # Add loyalty summary
         result = []
         for customer in customer_list:
             summary = get_loyalty_summary_internal(customer.name)
@@ -92,8 +196,6 @@ def get_loyalty_summary_internal(customer):
         "remaining_value": remaining_value
     }
 
-import frappe
-from frappe import _
 
 @frappe.whitelist(allow_guest=True)
 def create_customer(
@@ -181,9 +283,6 @@ def create_customer(
             "error": str(e)
         }
 
-import frappe
-from frappe import _
-
 @frappe.whitelist()
 def fetch_customer_metadata():
     try:
@@ -217,3 +316,20 @@ def fetch_customer_metadata():
             "message": _("Failed to fetch customer metadata"),
             "error": str(e)
         }
+
+
+@frappe.whitelist(allow_guest=True)
+def get_customer_count():
+    try:
+        total_count = frappe.db.count("Customer", filters={
+            "disabled": 0,
+            "posa_referral_company": "DIVA CAKES"
+        })
+
+        return {
+            "total_count": total_count
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_customer_details error")
+        return {"error": str(e)}

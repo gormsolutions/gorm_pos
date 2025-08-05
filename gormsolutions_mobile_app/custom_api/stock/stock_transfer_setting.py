@@ -1,111 +1,199 @@
 import frappe
-from frappe.utils import cint
-
-@frappe.whitelist()
-def create_user_permissions_from_stock_transfer_setting(docname):
-    """
-    Creates User Permission records from rows in the 'items' child table
-    of the given Stock Transfer Setting document.
-    Only processes rows where posted != 1.
-    """
-    doc = frappe.get_doc("Stock Transfer Setting", docname)
-    has_changes = False
-
-    for row in doc.get("items"):
-        if cint(row.posted) == 1 or not row.user:
-            continue
-
-        permission_created = False
-
-        if row.cost_center:
-            permission_created |= _create_permission_if_not_exists(
-                doctype="Cost Center",
-                for_value=row.cost_center.strip(),
-                user=row.user.strip(),
-                is_default=row.default
-            )
-
-        if row.warehouse:
-            permission_created |= _create_permission_if_not_exists(
-                doctype="Warehouse",
-                for_value=row.warehouse.strip(),
-                user=row.user.strip(),
-                is_default=row.default
-            )
-
-        # Mark row as posted if permission was created
-        if permission_created:
-            row.posted = 1
-            has_changes = True
-
-    if has_changes:
-        doc.save(ignore_permissions=True)
-        frappe.db.commit()
-        frappe.msgprint("Permissions created and rows updated.")
-
-def _create_permission_if_not_exists(doctype, for_value, user, is_default):
-    """
-    Creates a User Permission if it doesn't already exist.
-    Returns True if permission was created or updated.
-    """
-    if not user or not for_value:
-        return False
-
-    if not frappe.db.exists(doctype, for_value):
-        frappe.msgprint(f"Skipping: {doctype} '{for_value}' does not exist.")
-        return False
-
-    existing = frappe.get_all("User Permission", filters={
-        "user": user,
-        "allow": doctype,
-        "for_value": for_value
-    }, fields=["name", "is_default"])
-
-    if existing:
-        if cint(is_default) and not existing[0]["is_default"]:
-            perm = frappe.get_doc("User Permission", existing[0]["name"])
-            perm.is_default = 1
-            perm.save(ignore_permissions=True)
-            return True
-        return False
-
-    perm = frappe.new_doc("User Permission")
-    perm.user = user
-    perm.allow = doctype
-    perm.for_value = for_value
-    perm.is_default = cint(is_default)
-    perm.insert(ignore_permissions=True)
-    return True
-
-
-import frappe
 from frappe import _
 from frappe.utils import cint
 
 def validate_user_stock_transfer(doc, method):
     if doc.purpose != "Material Transfer":
-        return  # Only apply to Material Transfer entries
+        return
 
     user = frappe.session.user
 
-    # Only apply restriction if user has the "Transfer Permit" role
-    if not frappe.has_role(user, "Transfer Permit"):
+    # Only enforce if the user has the "Transfer Permit" role
+    if "Transfer Permit" not in frappe.get_roles(user):
         return
 
-    # Get all warehouse permissions where is_default == 1
-    user_perms = frappe.get_all("User Permission", filters={
-        "user": user,
-        "allow": "Warehouse"
-    }, fields=["for_value", "is_default"])
+    # Get the user's default warehouse
+    default_perm = frappe.get_all(
+        "User Permission",
+        filters={
+            "user": user,
+            "allow": "Warehouse",
+            "is_default": 1
+        },
+        fields=["for_value"],
+        limit=1
+    )
 
-    default_warehouses = {p.for_value for p in user_perms if cint(p.is_default) == 1}
+    # if not default_perm:
+    #     frappe.throw(_("No default warehouse found for your user permissions. Contact Administrator."))
+
+    default_warehouse = default_perm[0].for_value
 
     for item in doc.items:
-        target = item.t_warehouse
+        source_warehouse = item.s_warehouse
 
-        # Block if target warehouse is not in the user's default warehouses
-        if target and target not in default_warehouses:
+        if source_warehouse != default_warehouse:
+            # Find users permitted for this warehouse
+            permitted_users = frappe.get_all(
+                "User Permission",
+                filters={
+                    "allow": "Warehouse",
+                    "for_value": source_warehouse,
+                    "is_default": 1
+                },
+                fields=["user"]
+            )
+
+            # Fetch full names
+            full_names = []
+            for pu in permitted_users:
+                full_name = frappe.db.get_value("User", pu.user, "full_name")
+                if full_name:
+                    full_names.append(full_name)
+
+            contact_info = ", ".join(full_names) if full_names else _("No user found")
+
             frappe.throw(_(
-                f"You are not allowed to submit a Stock Transfer to Target Warehouse <b>{target}</b>. "
-                "Please contact your administrator to request access."
-            ), title=_("Not Allowed"))
+                f"You are not allowed Update this stock transfer.<b>Click Active button to reject with the reason </b><br>"
+                f"Please contact the permitted user(s): <b>{contact_info}</b> ."
+            ), title=_("Warehouse Restriction"))
+
+# In gormsolutions_mobile_app/custom_api/stock/stock_transfer_setting.py
+# File: gormsolutions_mobile_app/custom_api/stock/stock_transfer_setting.py
+
+
+def validate_user_stock_transfer_source_warehouse(doc, method):
+    if doc.purpose != "Material Transfer":
+        return
+
+    user = frappe.session.user
+
+    if "Transfer Permit" not in frappe.get_roles(user):
+        return
+    
+    if doc.custom_approve_status != "Approved":
+        frappe.throw("Please Approve the Stock Transfer.")
+
+
+    # Get user's default warehouse
+    default_perm = frappe.get_all(
+        "User Permission",
+        filters={
+            "user": user,
+            "allow": "Warehouse",
+            "is_default": 1
+        },
+        fields=["for_value"],
+        limit=1
+    )
+
+    # if not default_perm:
+    #     frappe.throw(_("No default warehouse found for your user permissions. Contact Administrator."))
+
+
+    default_warehouse = default_perm[0].for_value
+
+    for item in doc.items:
+        source_warehouse = item.s_warehouse
+
+        # ❌ Restrict if user is trying to transfer from their default warehouse
+        if source_warehouse == default_warehouse:
+            # Find other permitted users for that warehouse
+            permitted_users = frappe.get_all(
+                "User Permission",
+                filters={
+                    "allow": "Warehouse",
+                    "for_value": source_warehouse,
+                    "is_default": 0,
+                    "user": ["!=", user]  # exclude current user
+                },
+                fields=["user"]
+            )
+
+            # Get their full names
+            full_names = []
+            for pu in permitted_users:
+                full_name = frappe.db.get_value("User", pu.user, "full_name")
+                if full_name:
+                    full_names.append(full_name)
+
+            contact_info = ", ".join(full_names) if full_names else _("No other permitted users found.")
+
+            frappe.throw(_(
+                f"You are not allowed to Submit this stock transfer.<br>"
+                f"Contact Permitted users for this warehouse: <b>{contact_info}</b>."
+            ), title=_("Warehouse Restriction"))
+
+
+
+@frappe.whitelist()
+def reject_stock_entry(docname, reason):
+    if not docname or not reason:
+        frappe.throw(_("Missing parameters."))
+
+    # Update fields directly in DB
+    frappe.db.sql("""
+        UPDATE `tabStock Entry`
+        SET custom_approve_status = %s,
+            custom_reason = %s
+        WHERE name = %s
+    """, ("Rejected", reason, docname))
+
+    frappe.db.commit()
+    
+
+@frappe.whitelist()
+def approve_stock_entry(docname):
+    if not docname:
+        frappe.throw(_("Missing document name."))
+
+    frappe.db.sql("""
+        UPDATE `tabStock Entry`
+        SET custom_approve_status = %s,
+            custom_reason = NULL
+        WHERE name = %s
+    """, ("Approved", docname))
+    frappe.db.commit()
+
+
+def validate_before_submit(doc, method):
+    if doc.custom_approve_status == "Rejected":
+        frappe.throw("You cannot submit a rejected Stock Entry.")
+
+
+import frappe
+
+@frappe.whitelist()
+def assign_transfer_permit_to_all_users():
+    role_name = "Transfer Permit"
+    
+    # Ensure the role exists
+    if not frappe.db.exists("Role", role_name):
+        frappe.throw(f"Role '{role_name}' does not exist. Please create it first.")
+    
+    # Get all enabled system users
+    users = frappe.get_all(
+        "User",
+        filters={"enabled": 1, "user_type": "System User"},
+        pluck="name"
+    )
+
+    assigned_count = 0
+
+    for user in users:
+        # Check if user already has the role
+        if not frappe.db.exists("Has Role", {"parent": user, "role": role_name}):
+            user_doc = frappe.get_doc("User", user)
+            user_doc.append("roles", {"role": role_name})
+            user_doc.flags.ignore_permissions = True
+            user_doc.save()
+            assigned_count += 1
+
+    frappe.db.commit()
+
+    return f"Assigned '{role_name}' role to {assigned_count} user(s)."
+
+
+# def set_pending_approval(doc, method):
+#     if doc.purpose == "Material Transfer" and not doc.custom_approve_status:
+#         doc.custom_approve_status = "Pending Approval"
