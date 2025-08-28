@@ -2,47 +2,41 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "naming_series:",
- "creation": "2025-07-01 23:15:31.535064",
+ "creation": "2025-08-20 21:13:53.936541",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
   "from_date",
   "company",
+  "warehouse",
   "is_running",
   "column_break_dsvd",
   "to_date",
-  "account",
+  "item_group",
+  "item_code",
   "file_url",
   "progress"
  ],
  "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "SLT-GPA-.YYYY.-",
+   "read_only": 1
+  },
   {
    "fieldname": "from_date",
    "fieldtype": "Date",
    "label": "from date"
   },
   {
-   "fieldname": "to_date",
-   "fieldtype": "Date",
-   "label": "to date "
-  },
-  {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "company",
    "options": "Company"
-  },
-  {
-   "fieldname": "file_url",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "file url",
-   "options": "Company"
-  },
-  {
-   "fieldname": "column_break_dsvd",
-   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -53,6 +47,22 @@
    "options": "Company"
   },
   {
+   "fieldname": "column_break_dsvd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "to date "
+  },
+  {
+   "fieldname": "file_url",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "file url",
+   "options": "Company"
+  },
+  {
    "fieldname": "progress",
    "fieldtype": "Percent",
    "hidden": 1,
@@ -60,27 +70,31 @@
    "options": "Company"
   },
   {
-   "fieldname": "naming_series",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Naming Series",
-   "options": "GL-GPA-.YYYY.-",
-   "read_only": 1
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
   },
   {
-   "fieldname": "account",
+   "fieldname": "item_group",
    "fieldtype": "Link",
-   "label": "Account",
-   "options": "Account"
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-18 15:23:00.926983",
+ "modified": "2025-08-26 09:50:11.950799",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
- "name": "GL Export",
+ "name": "Stock Ledger Tool",
  "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
@@ -117,6 +131,18 @@
    "read": 1,
    "report": 1,
    "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
    "share": 1,
    "write": 1
   }

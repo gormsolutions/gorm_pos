@@ -159,15 +159,15 @@ doc_events = {
         "before_save": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount"
     },
 
-    # "Stock Entry": {
-    #     "before_save": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer",
-    #     "before_submit":[ 
-    #         "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_before_submit",
-    #         "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer_source_warehouse",
-            
+    "Stock Entry": {
+        "before_save": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer",
+        "before_submit":[ 
+            "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_before_submit",
+            "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer_source_warehouse",
+            "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.create_material_issue_on_difference",
    
-    #     ],
-    # }
+        ],
+    }
     
 }
 

@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "creation": "2025-08-15 14:05:36.102396",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-08-15 14:05:36.102396",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "asset_missing_schedu",
+ "owner": "Administrator",
+ "page_name": "asset_missing_schedu",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Asset Missing Schedule Report"
+}
