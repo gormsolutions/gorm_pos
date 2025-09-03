@@ -1,0 +1,280 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"HnBn1Aslc7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">ADMINISTRATOR</span>\",\"col\":12}},{\"id\":\"G3gNI9IWIp\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"JLLtN6h_KJ\",\"type\":\"card\",\"data\":{\"card_name\":\"Selling\",\"col\":4}},{\"id\":\"2CadYITOhF\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying\",\"col\":4}},{\"id\":\"pP85bgS01i\",\"type\":\"card\",\"data\":{\"card_name\":\"Expenses\",\"col\":4}},{\"id\":\"eBZU0ImWSC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Transfers\",\"col\":3}},{\"id\":\"N80x11VN20\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Settings</b></span>\",\"col\":12}},{\"id\":\"i2DMT6dw2n\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Person Targets\",\"col\":3}},{\"id\":\"t-MRxGxA69\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase And Return Settings\",\"col\":3}},{\"id\":\"DgXI1hl6O7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"idPOl8vc9e\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item Wise Register\",\"col\":3}},{\"id\":\"wF7kJlkd8D\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payable Summery\",\"col\":3}},{\"id\":\"rbqjyLc2eK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables\",\"col\":3}},{\"id\":\"mLreye49og\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables Summery\",\"col\":3}},{\"id\":\"KfyHBnekHa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Register\",\"col\":3}},{\"id\":\"vuVm4Gm0UB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payables\",\"col\":3}},{\"id\":\"-1P2dmhci5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balances\",\"col\":3}}]",
+ "creation": "2025-08-24 17:16:54.499435",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "idx": 2,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "ADMINISTRATOR",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Buying",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Invoice",
+   "link_count": 0,
+   "link_to": "Purchase Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Expenses",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Branch Expenses",
+   "link_count": 0,
+   "link_to": "Branch Expenses",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Expense Claim Type",
+   "link_count": 0,
+   "link_to": "Expense Claim Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Selling",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Invoice",
+   "link_count": 0,
+   "link_to": "Sales Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Payment Summary",
+   "link_count": 0,
+   "link_to": "Sales Payment Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Sales Invoice",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Stock Ledger",
+   "link_count": 0,
+   "link_to": "Stock Ledger",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Stock Ledger Entry",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Masters",
+   "link_count": 8,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item",
+   "link_count": 0,
+   "link_to": "Item",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Customer",
+   "link_count": 0,
+   "link_to": "Customer",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Supplier",
+   "link_count": 0,
+   "link_to": "Supplier",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Staff",
+   "link_count": 0,
+   "link_to": "Employee",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Set Item Prices",
+   "link_count": 0,
+   "link_to": "Item Price",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Stock Reconciliation",
+   "link_count": 0,
+   "link_to": "Stock Reconciliation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Opening Balances",
+   "link_count": 0,
+   "link_to": "Opening Invoice Creation Tool",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Warehouse",
+   "link_count": 0,
+   "link_to": "Warehouse",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-08-30 17:38:28.232374",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "ADMINISTRATOR",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 39.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Stock Transfers",
+   "link_to": "Stock Entry",
+   "stats_filter": "[[\"Stock Entry\",\"stock_entry_type\",\"=\",\"Material Transfer\",false],[\"Stock Entry\",\"from_warehouse\",\"=\",\"Stores - AEL\",false]]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Receivables Summery",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Accounts%20Receivable%20Summary?company=ASHLINK+ENTERPRISE+LTD&report_date=2025-08-24"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Payables",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Accounts%20Payable?company=ASHLINK+ENTERPRISE+LTD&report_date=2025-08-24"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Purchase And Return Settings",
+   "link_to": "Purchase and Return Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Receivables",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Accounts%20Receivable?company=ASHLINK+ENTERPRISE+LTD&report_date=2025-08-24"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Stock Balances",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Stock%20Balance?company=ASHLINK+ENTERPRISE+LTD&from_date=2025-07-24&to_date=2025-08-24&valuation"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Sales Register",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Sales%20Register?from_date=2025-07-24&to_date=2025-08-24&company=ASHLINK+ENTERPRISE+LTD"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Payable Summery",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Accounts%20Payable%20Summary?company=ASHLINK+ENTERPRISE+LTD&report_date=2025-08-24"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Item Wise Register",
+   "type": "URL",
+   "url": "https://ashlink.gorm.cloud/app/query-report/Item-wise%20Sales%20Register?from_date=2025-07-24&to_date=2025-08-24&company=ASHLINK+ENTERPRISE+"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Sales Person Targets",
+   "link_to": "Sales Person Targets",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "ADMINISTRATOR"
+}

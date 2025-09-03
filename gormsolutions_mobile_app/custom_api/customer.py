@@ -21,11 +21,12 @@ def get_customer_details(limit,offset,search=None):
     return customer_details
 
 @frappe.whitelist(allow_guest=True)
-def create_customer(customer_name,mobile_no,email_id=None):
+def create_customer(customer_name,mobile_no,location=None,email_id=None):
 
     doc = frappe.new_doc('Customer')
     doc.customer_name = customer_name
     doc.mobile_no = mobile_no
+    doc.custom_location = location
     if email_id:
         doc.email_id = email_id
     doc.insert()

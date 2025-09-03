@@ -141,13 +141,23 @@ doc_events = {
 	# "*": {
 	# 	"on_update": "method",
 	# 	"on_cancel": "method",
-	# 	"on_trash": "method"
+	# 	"on_trash": "method" apps/gormsolutions_mobile_app/gormsolutions_mobile_app/custom_api/sales_person_targets_events.py
 	# }
     "Item": {
         "validate": "gormsolutions_mobile_app.custom_api.disable.update_item_price"
     },
     "Purchase Invoice": {
         "on_submit": "gormsolutions_mobile_app.custom_api.purchase_invoice.update_item_buying.update_item_buying_price"
+    },
+    "Sales Invoice": {
+        "validate": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.validate_credit_limit",
+        "on_update": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+        "on_submit": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+        "on_cancel": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+    },
+    "Payment Entry": {
+        "on_submit": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+        "on_cancel": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
     }
 }
 

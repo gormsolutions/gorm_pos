@@ -17,7 +17,7 @@ def get_invoice_details(limit, offset, search=None):
     sales_invoice_details = frappe.get_all(
         'Sales Invoice',
         fields=[
-            'name', 'grand_total', 'remarks','posting_date', 'paid_amount', 'outstanding_amount',
+            'name', 'grand_total', 'remarks','posting_date','posting_time', 'paid_amount', 'outstanding_amount',
             'owner', 'docstatus', 'status', 'customer', 'customer_name'
         ],
         order_by='posting_date desc',
@@ -54,7 +54,7 @@ def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payme
         filters={
             'user': current_user,
             'allow': 'Warehouse',
-            "is_default": 0
+            "is_default": 1
         },
         fields=['for_value']
     )

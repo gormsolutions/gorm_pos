@@ -137,163 +137,132 @@ from frappe.utils import flt
 
 @frappe.whitelist()
 def get_sales_invoice_details_and_payments(customer, from_date, to_date):
-    from frappe.utils import flt
+    from frappe.utils import flt, getdate
 
-    sales_invoice_data = {}
-    total_paid_amount = 0
-    grand_total_amount = 0  
-    running_balance = 0      
-    balance_brought_forward = 0  
-
-    # Balance Brought Forward
-    previous_balance = frappe.db.sql("""
-        SELECT 
-            SUM(gle.debit - gle.credit) AS balance
-        FROM 
-            `tabGL Entry` gle
-        WHERE 
-            gle.party_type = 'Customer'
-            AND gle.party = %s
-            AND gle.posting_date < %s
-            AND gle.docstatus = 1
+    # Step 1: Opening Balance
+    opening = frappe.db.sql("""
+        SELECT SUM(debit - credit) AS balance
+        FROM `tabGL Entry`
+        WHERE party_type = 'Customer'
+        AND party = %s
+        AND posting_date < %s
+        AND is_cancelled = 0
     """, (customer, from_date), as_dict=True)
-    
-    if previous_balance and previous_balance[0].balance:
-        balance_brought_forward = flt(previous_balance[0].balance)
-    
-    running_balance = balance_brought_forward
 
-    # Fetch and group Sales Invoices
-    invoices = frappe.db.sql("""
+    opening_balance = flt(opening[0].balance) if opening else 0.0
+    running_balance = opening_balance
+
+    # Step 2: GL Entries within range
+    gl_entries_raw = frappe.db.sql("""
+        SELECT
+            name AS gl_entry_name,
+            posting_date,
+            account,
+            cost_center,
+            voucher_type,
+            voucher_no,
+            remarks,
+            debit,
+            credit
+        FROM `tabGL Entry`
+        WHERE party_type = 'Customer'
+        AND party = %s
+        AND posting_date BETWEEN %s AND %s
+        AND is_cancelled = 0
+        ORDER BY posting_date, name
+    """, (customer, from_date, to_date), as_dict=True)
+
+    # Step 3: Compute running balance
+    transactions = []
+
+    # Add opening balance line
+    transactions.append({
+        "posting_date": str(from_date),
+        "particulars": "Opening Balance",
+        "voucher_type": "Opening",
+        "voucher_no": "",
+        "debit": 0.0,
+        "credit": 0.0,
+        "running_balance": running_balance,
+        "paid_amount": 0.0,
+        "payment_entry_name": "",
+    })
+
+    # Track totals
+    total_debit = total_credit = 0.0
+
+    for entry in gl_entries_raw:
+        debit = flt(entry.debit)
+        credit = flt(entry.credit)
+        running_balance += debit - credit
+        total_debit += debit
+        total_credit += credit
+
+        transactions.append({
+            "posting_date": str(entry.posting_date),
+            "particulars": entry.remarks or f"{entry.voucher_type} {entry.voucher_no}",
+            "voucher_type": entry.voucher_type,
+            "voucher_no": entry.voucher_no,
+            "account": entry.account,
+            "cost_center": entry.cost_center,
+            "debit": debit,
+            "credit": credit,
+            "running_balance": running_balance,
+            "paid_amount": credit if credit else 0.0,  # for customer, payments are credits
+            "payment_entry_name": entry.voucher_no
+        })
+
+    # Step 4: Pull related Sales Invoices with items
+    invoice_data = frappe.db.sql("""
         SELECT 
-            si.name AS invoice_name,
-            si.posting_date,
-            si.cost_center, 
-            si.status, 
-            sii.item_code, 
-            sii.qty, 
-            sii.uom,
-            sii.rate, 
-            sii.amount
-        FROM 
-            `tabSales Invoice` si
-        JOIN 
-            `tabSales Invoice Item` sii ON sii.parent = si.name
-        WHERE 
-            si.customer = %s 
-            AND si.posting_date BETWEEN %s AND %s 
-            AND si.docstatus = 1
+            si.name, si.posting_date, si.cost_center, si.status, si.grand_total
+        FROM `tabSales Invoice` si
+        WHERE si.customer = %s
+        AND si.posting_date BETWEEN %s AND %s
+        AND si.docstatus = 1
         ORDER BY si.posting_date
     """, (customer, from_date, to_date), as_dict=True)
 
-    for invoice in invoices:
-        total_amount = flt(invoice.amount)
-        grand_total_amount += total_amount
-        running_balance += total_amount
+    sales_invoice_data = []
+    for si in invoice_data:
+        items = frappe.db.sql("""
+            SELECT item_code, description, qty, uom, rate, amount
+            FROM `tabSales Invoice Item`
+            WHERE parent = %s
+            ORDER BY idx
+        """, si.name, as_dict=True)
 
-        if invoice.invoice_name not in sales_invoice_data:
-            sales_invoice_data[invoice.invoice_name] = {
-                "invoice_name": invoice.invoice_name,
-                "cost_center": invoice.cost_center,
-                "posting_date": invoice.posting_date,
-                "status": invoice.status,
-                "items": [],
-                "invoice_total": 0,
-                "running_balance_after_invoice": 0
-            }
-
-        sales_invoice_data[invoice.invoice_name]["items"].append({
-            "item_code": invoice.item_code,
-            "qty": flt(invoice.qty),
-            "uom": invoice.uom,
-            "rate": flt(invoice.rate),
-            "amount": total_amount
+        sales_invoice_data.append({
+            "invoice_name": si.name,
+            "posting_date": str(si.posting_date),
+            "cost_center": si.cost_center,
+            "status": si.status,
+            "invoice_total": flt(si.grand_total),
+            "items": [{
+                "item_code": itm.item_code,
+                "description": itm.description,
+                "qty": flt(itm.qty),
+                "uom": itm.uom,
+                "rate": flt(itm.rate),
+                "amount": flt(itm.amount)
+            } for itm in items]
         })
 
-        sales_invoice_data[invoice.invoice_name]["invoice_total"] += total_amount
-        sales_invoice_data[invoice.invoice_name]["running_balance_after_invoice"] = running_balance
-
-    # Fetch Payment Entries
-    payments = frappe.db.sql("""
-        SELECT 
-            pe.name AS payment_entry_name, 
-            pe.posting_date,
-            pe.cost_center, 
-            pe.paid_amount
-        FROM 
-            `tabPayment Entry` pe
-        WHERE 
-            pe.party_type = 'Customer'
-            AND pe.party = %s
-            AND pe.posting_date BETWEEN %s AND %s
-            AND pe.docstatus = 1
-    """, (customer, from_date, to_date), as_dict=True)
-
-    filtered_payments = []
-    for payment in payments:
-        paid_amount = flt(payment.paid_amount)
-        total_paid_amount += paid_amount
-        running_balance -= paid_amount
-
-        filtered_payments.append({
-            "payment_entry_name": payment.payment_entry_name,
-            "cost_center": payment.cost_center,
-            "posting_date": payment.posting_date,
-            "paid_amount": paid_amount,
-            "running_balance_after_payment": running_balance
-        })
-
-    # Fetch Journal Entry GL Entries
-    gl_entries = frappe.db.sql("""
-        SELECT
-            gle.name AS gl_entry_name,
-            gle.posting_date,
-            gle.cost_center,
-            gle.debit,
-            gle.voucher_no,
-            gle.credit,
-            gle.remarks
-        FROM
-            `tabGL Entry` gle
-        WHERE
-            gle.party_type = 'Customer'
-            AND gle.party = %s
-            AND gle.voucher_type = 'Journal Entry'
-            AND gle.posting_date BETWEEN %s AND %s
-            AND gle.docstatus = 1
-    """, (customer, from_date, to_date), as_dict=True)
-
-    filtered_gl_entries = []
-    for gl_entry in gl_entries:
-        debit = flt(gl_entry.debit)
-        credit = flt(gl_entry.credit)
-
-        running_balance += debit
-        running_balance -= credit
-        total_paid_amount += credit
-
-        filtered_gl_entries.append({
-            "gl_entry_name": gl_entry.gl_entry_name,
-            "posting_date": gl_entry.posting_date,
-            "cost_center": gl_entry.cost_center,
-            "voucher_no": gl_entry.voucher_no,
-            "debit": debit,
-            "credit": credit,
-            "remarks": gl_entry.remarks,
-            "running_balance_after_gl": running_balance
-        })
-
-    outstanding_amount = grand_total_amount - total_paid_amount
+    # Step 5: Final calculations
+    outstanding_amount = opening_balance + total_debit - total_credit
+    total_paid_amount = total_credit
+    grand_total_amount = total_debit  # Total debited from customer (invoices + journal entries)
 
     return {
-        "sales_invoice_data": list(sales_invoice_data.values()),
-        "balance_brought_forward": balance_brought_forward,
+        "sales_invoice_data": sales_invoice_data,
+        "balance_brought_forward": opening_balance,
         "grand_total_amount": grand_total_amount,
         "total_paid_amount": total_paid_amount,
         "outstanding_amount": outstanding_amount,
-        "payments": filtered_payments,
-        "gl_entries": filtered_gl_entries
+        "payments": transactions,
+        "gl_entries": gl_entries_raw
     }
+
 
 @frappe.whitelist()
 def supplier_details_and_payments(supplier, from_date, to_date):

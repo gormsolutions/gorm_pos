@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Barcode Scanner</title>
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<style>
+body { font-family: system-ui, Arial, sans-serif; padding:1rem; background:#f9f9f9; margin:0; }
+h1 { text-align:center; margin-bottom:1rem; font-size:1.2rem; }
+.video-wrapper { position: relative; }
+video { width: 100%; max-height: 320px; background:#000; border-radius:12px; display:none; }
+.scan-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; border:2px dashed rgba(255,0,0,0.7); border-radius:12px; box-sizing:border-box; display:none; animation: pulse 1s infinite; }
+@keyframes pulse { 0%{border-color: rgba(255,0,0,0.7);} 50%{border-color: rgba(255,0,0,0.3);} 100%{border-color: rgba(255,0,0,0.7);} }
+input,button { padding:.6rem; font-size:1rem; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; margin-top:.5rem; }
+button { background:#007bff; color:#fff; border:none; cursor:pointer; }
+button:disabled { background:#aaa; cursor:not-allowed; }
+.status { margin-top:.5rem; padding:.5rem; border-radius:4px; font-size:.9rem; display:none; }
+.status.ok { background:#d4edda; color:#155724; display:block; }
+.status.err { background:#f8d7da; color:#721c24; display:block; }
+.stack { display:flex; flex-direction:column; gap:.5rem; }
+#scanStatus { margin-top:.5rem; font-weight:bold; text-align:center; color:#555; }
+</style>
+</head>
+<body>
+
+<h1>Mobile Barcode Scanner</h1>
+
+<div class="video-wrapper">
+  <video id="preview" autoplay playsinline muted></video>
+  <div class="scan-overlay" id="scanOverlay"></div>
+</div>
+
+<div class="stack">
+  <button id="startBtn">📷 Start Camera</button>
+  <button id="stopBtn" disabled>⏹ Stop Camera</button>
+</div>
+
+<div id="scanStatus">Ready</div>
+
+<form id="itemForm" class="stack">
+  <label for="itemSearch">Select Item</label>
+<div style="position:relative;">
+  <input id="itemSearch" placeholder="Start typing item name..." autocomplete="off" required>
+  <input type="hidden" id="item_code" name="item_code">
+  <ul id="itemListDropdown" style="position:absolute; top:100%; left:0; right:0; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #ccc; border-radius:6px; display:none; z-index:1000; padding:0; margin:0; list-style:none;"></ul>
+</div>
+
+  <label for="barcode">Scanned Barcode</label>
+  <input id="barcode" name="barcode" placeholder="Scanned barcode appears here..." readonly required>
+
+  <button type="submit">✅ Update Barcode</button>
+  <button type="button" id="clearBtn">Clear</button>
+</form>
+
+<div id="status" class="status"></div>
+
+<script>
+(async function(){
+  const { BrowserMultiFormatReader } = ZXingBrowser;
+  const codeReader = new BrowserMultiFormatReader();
+
+  const video = document.getElementById('preview');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const itemSearch = document.getElementById('itemSearch');
+  const itemList = document.getElementById('itemList');
+  const hiddenItemCode = document.getElementById('item_code');
+  const inputBarcode = document.getElementById('barcode');
+  const itemForm = document.getElementById('itemForm');
+  const statusEl = document.getElementById('status');
+  const scanStatus = document.getElementById('scanStatus');
+  const scanOverlay = document.getElementById('scanOverlay');
+
+  const itemsEndpoint = 'https://roots.gorm.cloud/api/method/gormsolutions_mobile_app.custom_api.scans.barcode_scan.get_all_items';
+  const endpoint = 'https://roots.gorm.cloud/api/method/gormsolutions_mobile_app.custom_api.scans.barcode_scan.update_item_barcode';
+
+  let stream = null;
+  let scanning = false;
+
+  function setStatus(msg,type='warn'){ statusEl.textContent=msg; statusEl.className='status '+type; statusEl.style.display='block'; }
+  function clearStatus(){ statusEl.style.display='none'; }
+
+  // Load items and populate datalist
+async function loadItems(){
+  try{
+    const res = await fetch(itemsEndpoint,{credentials:'include'});
+    const data = await res.json();
+    const arr = data.message || [];
+    window.items = arr.map(it => ({
+      code: it.item_code.trim(),
+      name: it.item_name.trim()
+    }));
+  }catch(e){
+    setStatus('Failed to load items','err');
+  }
+}
+
+// Show filtered dropdown
+itemSearch.addEventListener('input', function(){
+  const val = this.value.toLowerCase();
+  const dropdown = document.getElementById('itemListDropdown');
+  dropdown.innerHTML = '';
+  if(!val){ dropdown.style.display='none'; hiddenItemCode.value=''; return; }
+
+  const matches = window.items.filter(it => it.name.toLowerCase().includes(val) || it.code.toLowerCase().includes(val));
+  if(matches.length === 0){ dropdown.style.display='none'; hiddenItemCode.value=''; return; }
+
+  matches.forEach(it => {
+    const li = document.createElement('li');
+    li.textContent = it.name + ' (' + it.code + ')';
+    li.style.padding = '.5rem';
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', ()=>{
+      itemSearch.value = li.textContent;
+      hiddenItemCode.value = it.code;
+      dropdown.style.display='none';
+    });
+    dropdown.appendChild(li);
+  });
+
+  dropdown.style.display='block';
+});
+
+// Hide dropdown if clicked outside
+document.addEventListener('click', e=>{
+  if(!document.getElementById('itemSearch').contains(e.target)){
+    document.getElementById('itemListDropdown').style.display='none';
+  }
+});
+
+  itemSearch.addEventListener('input', function(){
+    const val = this.value;
+    const opt = Array.from(itemList.options).find(o => o.value === val);
+    hiddenItemCode.value = opt ? opt.dataset.code : '';
+  });
+
+  async function startScan() {
+    try {
+      scanning = true;
+      scanStatus.textContent = 'Scanning...';
+      scanOverlay.style.display = 'block';
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const backCam = cams.find(c => /back|rear/i.test(c.label));
+      const currentDeviceId = backCam ? backCam.deviceId : cams[0]?.deviceId;
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: currentDeviceId ? { exact: currentDeviceId } : undefined },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      video.style.display='block';
+      stopBtn.disabled=false;
+      startBtn.disabled=true;
+      clearStatus();
+
+      codeReader.decodeFromVideoDevice(currentDeviceId, video, (result, err) => {
+        if (result && scanning) {
+          inputBarcode.value = result.text.trim();
+          scanStatus.textContent = 'Detected: ' + inputBarcode.value;
+          setStatus('Detected: ' + inputBarcode.value, 'ok');
+          stopScan(); // stop after first scan
+        }
+      });
+
+    } catch(e) {
+      setStatus('Camera error: ' + e.message,'err');
+      scanStatus.textContent='Error';
+      scanOverlay.style.display='none';
+      stopScan();
+    }
+  }
+
+  async function stopScan(){
+    scanning=false;
+    if(codeReader.reset) codeReader.reset();
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+    stream=null;
+    video.style.display='none';
+    scanOverlay.style.display='none';
+    stopBtn.disabled=true;
+    startBtn.disabled=false;
+    scanStatus.textContent='Stopped';
+  }
+
+  document.getElementById('clearBtn').addEventListener('click',()=>{
+    itemForm.reset();
+    hiddenItemCode.value='';
+    inputBarcode.value='';
+    clearStatus();
+    scanStatus.textContent='Ready';
+  });
+
+  startBtn.addEventListener('click',startScan);
+  stopBtn.addEventListener('click',stopScan);
+
+  itemForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const item_code = hiddenItemCode.value.trim();
+    const barcode = inputBarcode.value.trim();
+    if(!item_code){ setStatus('Select an item','err'); return; }
+    if(!barcode){ setStatus('Scan a barcode first','err'); return; }
+    setStatus('Posting…','warn');
+    try{
+      const res = await fetch(endpoint,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({item_code, barcode})
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data?.message||'Error');
+      setStatus('Barcode updated ✅','ok');
+    }catch(e){ setStatus('Failed: '+e.message,'err'); }
+  });
+
+  await loadItems();
+  setStatus('Type/select an item, click "Start Camera" and show barcode.','warn');
+})();
+</script>
+
+</body>
+</html>

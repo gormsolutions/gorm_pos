@@ -1,11 +1,13 @@
 {
+ "actions": [],
  "creation": "2020-12-21 23:47:23.965060",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "default_warehouse",
-  "default_price_list"
+  "default_price_list",
+  "parent_cost_center"
  ],
  "fields": [
   {
@@ -19,10 +21,17 @@
    "fieldtype": "Link",
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "fieldname": "parent_cost_center",
+   "fieldtype": "Link",
+   "label": "Parent Cost Center",
+   "options": "Cost Center"
   }
  ],
  "issingle": 1,
- "modified": "2020-12-30 00:09:26.734042",
+ "links": [],
+ "modified": "2025-08-24 20:00:38.589331",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "POS Default",
@@ -42,5 +51,6 @@
  "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Warehouses</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f1f5f9;
+      padding: 20px;
+    }
+    .card {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      background: #f8fafc;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .reload {
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #22c55e;
+      color: white;
+    }
+    .reload:hover {
+      background: #16a34a;
+    }
+    .response {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Available Warehouses</h1>
+    <ul id="warehouseList">
+      <li>Loading…</li>
+    </ul>
+    <button class="reload" id="reloadBtn">🔄 Reload Warehouses</button>
+    <div class="response" id="rawResponse">Response will appear here…</div>
+  </div>
+
+  <script>
+    const list = document.getElementById('warehouseList');
+    const rawResponse = document.getElementById('rawResponse');
+    const reloadBtn = document.getElementById('reloadBtn');
+
+    async function loadWarehouses(){
+      list.innerHTML = '<li>Loading…</li>';
+      rawResponse.textContent = 'Fetching…';
+
+      try {
+        const res = await fetch("https://ashlink.gorm.cloud/api/method/gormsolutions_mobile_app.custom_api.stock.transfer_stock.get_non_default_user_warehouses");
+        const data = await res.json();
+
+        const warehouses = data?.message?.warehouses || [];
+
+        if(warehouses.length){
+          list.innerHTML = warehouses.map(w => `<li>${w}</li>`).join('');
+        } else {
+          list.innerHTML = '<li>No warehouses found.</li>';
+        }
+
+        rawResponse.textContent = JSON.stringify(data, null, 2);
+      } catch (err){
+        list.innerHTML = '<li>Error loading warehouses.</li>';
+        rawResponse.textContent = 'Error: ' + err;
+      }
+    }
+
+    reloadBtn.addEventListener('click', loadWarehouses);
+
+    // initial load
+    loadWarehouses();
+  </script>
+</body>
+</html>
