@@ -147,7 +147,8 @@ doc_events = {
         "validate": "gormsolutions_mobile_app.custom_api.disable.update_item_price"
     },
     "Purchase Invoice": {
-        "on_submit": "gormsolutions_mobile_app.custom_api.purchase_invoice.update_item_buying.update_item_buying_price"
+        # "on_submit": "gormsolutions_mobile_app.custom_api.purchase_invoice.update_item_buying.update_item_buying_price"
+        "on_submit": "gormsolutions_mobile_app.custom_api.stock.create_buying_rate.create_item_price_from_purchase_invoice"
     },
     "Sales Invoice": {
         "validate": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.validate_credit_limit",

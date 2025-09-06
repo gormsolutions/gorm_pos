@@ -97,3 +97,60 @@ def recieve_payment(mode_of_payment, paid_amount, party):
         return {"status": "Success", "message": "Payment received successfully", "paid_amount": res_doc.paid_amount}
     except Exception as e:
         return {"status": "Error", "message": str(e)}
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def get_logged_in_user_payments():
+    """
+    Fetch Payment Entries for the logged-in user.
+    Returns basic info: name, posting date, party, paid amount, mode of payment,
+    payment type, and linked references.
+    """
+    try:
+        user = frappe.session.user
+
+        # Fetch Payment Entries created by the logged-in user
+        payments = frappe.get_all(
+            "Payment Entry",
+            filters={"owner": user},
+            fields=[
+                "name",
+                "posting_date",
+                "party_type",
+                "party",
+                "paid_amount",
+                "mode_of_payment",
+                "payment_type",
+            ],
+            order_by="posting_date desc"
+        )
+
+        # Include references for each Payment Entry
+        for pe in payments:
+            pe['references'] = frappe.get_all(
+                "Payment Entry Reference",
+                filters={"parent": pe['name']},
+                fields=[
+                    "reference_doctype",
+                    "reference_name",
+                    "allocated_amount",
+                    "outstanding_amount",
+                    "total_amount"
+                ]
+            )
+
+        return {
+            "status": "success",
+            "payments": payments
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fetch User Payment Entries Error")
+        return {
+            "status": "error",
+            "message": _("Unable to fetch Payment Entries."),
+            "error_detail": str(e)
+        }

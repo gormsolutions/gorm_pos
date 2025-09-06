@@ -40,7 +40,7 @@ def create_material_transfer_ashlink(items, customer=None):     # <-- made optio
                 "t_warehouse": item.get("warehouse")
             })
 
-        stock_entry.insert(ignore_permissions=True)
+        stock_entry.insert()
         stock_entry.submit()
 
         return {
@@ -94,52 +94,166 @@ def get_non_default_user_warehouses():
             "error_detail": str(e)
         }
 
+# import frappe
+# from frappe import _
+
+# @frappe.whitelist()
+# def create_material_return_ashlink(items):
+#     try:
+#         current_user = frappe.session.user
+
+#         # Fetch default warehouse from User Permissions (Source Warehouse)
+#         user_permissions = frappe.get_all(
+#             "User Permission",
+#             filters={"user": current_user, "allow": "Warehouse", "is_default": 1},
+#             fields=["for_value"]
+#         )
+
+#         default_warehouses = [perm["for_value"] for perm in user_permissions]
+#         source_warehouse = default_warehouses[0] if default_warehouses else None
+
+#         if not source_warehouse:
+#             frappe.throw(_("Source warehouse not found. Please set it in User Permissions."))
+
+#         # Parse item quantities from JSON string to Python dictionary
+#         import json
+#         items_payload = json.loads(items) if isinstance(items, str) else (items or [])
+
+#         if not items_payload:
+#             frappe.throw(_("No items provided for Material Transfer."))
+
+#         # Create a Stock Entry (Material Transfer)
+#         stock_entry = frappe.new_doc("Stock Entry")
+#         stock_entry.stock_entry_type = "Material Transfer"
+#         stock_entry.posting_date = frappe.utils.today()
+#         stock_entry.to_warehouse = source_warehouse
+       
+
+#         for item in items_payload: 
+#             stock_entry.from_warehouse = item.get("warehouse")
+#             stock_entry.append("items", {
+#                 "item_code": item.get("item_code"),
+#                 "qty": item.get("qty"),
+#                 "uom": item.get("uom"),
+#                 "s_warehouse": item.get("warehouse"),
+#                 "t_warehouse": source_warehouse,
+#             })
+
+#         # Insert & submit Stock Entry
+#         stock_entry.insert()
+#         stock_entry.submit()
+
+#         return {
+#             "status": "success",
+#             "message": _("Material Transfer created successfully."),
+#             "stock_entry": stock_entry.name
+#         }
+
+#     except Exception as e:
+#         frappe.log_error(frappe.get_traceback(), "Material Transfer Creation Error")
+#         return {
+#             "status": "error",
+#             "message": _("Error creating Material Transfer. Please try again."),
+#             "error_detail": str(e)
+#         }
+
 import frappe
 from frappe import _
+from erpnext.stock.utils import get_stock_balance
+from frappe.utils import get_datetime
 
 @frappe.whitelist()
 def create_material_return_ashlink(items):
     try:
         current_user = frappe.session.user
 
-        # Fetch default warehouse from User Permissions (Source Warehouse)
+        # Get default target warehouse
         user_permissions = frappe.get_all(
             "User Permission",
             filters={"user": current_user, "allow": "Warehouse", "is_default": 1},
             fields=["for_value"]
         )
-
         default_warehouses = [perm["for_value"] for perm in user_permissions]
-        source_warehouse = default_warehouses[0] if default_warehouses else None
+        target_warehouse = default_warehouses[0] if default_warehouses else None
 
-        if not source_warehouse:
-            frappe.throw(_("Source warehouse not found. Please set it in User Permissions."))
+        if not target_warehouse:
+            frappe.throw(_("Target warehouse not found. Please set it in User Permissions."))
 
-        # Parse item quantities from JSON string to Python dictionary
+        # Parse items payload
         import json
         items_payload = json.loads(items) if isinstance(items, str) else (items or [])
-
         if not items_payload:
             frappe.throw(_("No items provided for Material Transfer."))
 
-        # Create a Stock Entry (Material Transfer)
+        posting_datetime = get_datetime(frappe.utils.now())
+
+        shortages = []
+        for item in items_payload:
+            item_code = item.get("item_code")
+            from_warehouse = item.get("warehouse")
+            qty = float(item.get("qty") or 0)
+            uom = item.get("uom") or ""
+
+            # Get stock UOM
+            stock_uom = frappe.db.get_value("Item", item_code, "stock_uom")
+            if not stock_uom:
+                frappe.throw(_("Stock UOM not set for item {0}").format(item_code))
+
+            # Calculate conversion factor manually
+            if uom != stock_uom:
+                conv_factor = frappe.db.get_value(
+                    "UOM Conversion Detail",
+                    {"parent": item_code, "uom": uom},
+                    "conversion_factor"
+                )
+                if not conv_factor:
+                    frappe.throw(_("Conversion factor not found for item {0} from {1} to {2}").format(
+                        item_code, uom, stock_uom))
+            else:
+                conv_factor = 1.0
+
+            qty_in_stock_uom = qty * conv_factor
+
+            # Check actual stock from stock ledger
+            actual_qty = get_stock_balance(
+                item_code=item_code,
+                warehouse=from_warehouse,
+                posting_date=posting_datetime.date(),
+                posting_time=posting_datetime.time(),
+                with_valuation_rate=False
+            ) or 0
+
+            if qty_in_stock_uom > actual_qty:
+                shortages.append(
+                    _("Item {0} in {1}: Requested {2} {3} ({4} in stock UOM), Available {5}").format(
+                        item_code, from_warehouse, qty, uom, qty_in_stock_uom, actual_qty
+                    )
+                )
+
+        if shortages:
+            frappe.throw(
+                _("Cannot proceed with Material Transfer due to insufficient stock:<br>") +
+                "<br>".join(shortages),
+                title=_("Insufficient Stock")
+            )
+
+        # Create Stock Entry
         stock_entry = frappe.new_doc("Stock Entry")
         stock_entry.stock_entry_type = "Material Transfer"
-        stock_entry.posting_date = frappe.utils.today()
-        stock_entry.to_warehouse = source_warehouse
-       
+        stock_entry.posting_date = posting_datetime.date()
+        stock_entry.posting_time = posting_datetime.time()
+        stock_entry.to_warehouse = target_warehouse
 
-        for item in items_payload: 
+        for item in items_payload:
             stock_entry.from_warehouse = item.get("warehouse")
             stock_entry.append("items", {
                 "item_code": item.get("item_code"),
                 "qty": item.get("qty"),
                 "uom": item.get("uom"),
                 "s_warehouse": item.get("warehouse"),
-                "t_warehouse": source_warehouse,
+                "t_warehouse": target_warehouse,
             })
 
-        # Insert & submit Stock Entry
         stock_entry.insert(ignore_permissions=True)
         stock_entry.submit()
 
@@ -149,13 +263,22 @@ def create_material_return_ashlink(items):
             "stock_entry": stock_entry.name
         }
 
+    except frappe.ValidationError as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "error_detail": str(e)
+        }
+
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Material Transfer Creation Error")
         return {
             "status": "error",
-            "message": _("Error creating Material Transfer. Please try again."),
+            "message": _("Unexpected error while creating Material Transfer."),
             "error_detail": str(e)
         }
+
+
 
 @frappe.whitelist()
 def create_material_return_experies(items):
@@ -213,7 +336,7 @@ def create_material_return_experies(items):
             })
 
         # Insert & submit Stock Entry
-        stock_entry.insert(ignore_permissions=True)
+        stock_entry.insert()
         stock_entry.submit()
 
         return {
@@ -305,7 +428,7 @@ def create_purchase_invoice(supplier, items, is_return=False):
         })
 
     # Insert & submit
-    pi.insert(ignore_permissions=True)
+    pi.insert()
     pi.submit()
 
     return {
