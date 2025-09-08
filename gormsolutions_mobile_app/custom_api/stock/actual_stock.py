@@ -54,6 +54,72 @@ def get_stock_qty(cost_center=None):
     
     return stock_qty
 
+import frappe
+
+
+import frappe
+
+@frappe.whitelist()
+def get_stock_qty_ashlink(cost_center=None):
+    """
+    Fetch stock quantities directly from Stock Ledger Entries (SLE) along with:
+    - Current buying price as valuation rate (fallback to average valuation rate from SLE if no Item Price exists).
+    - Selling price from Item Price.
+    - UOM from Item.
+    - Show stock per specific warehouse, include positive and negative balances, exclude only zero.
+    Optionally filter by cost center, but do not restrict to a specific warehouse.
+    """
+
+    query = """
+        SELECT
+            sle.item_code,
+            sle.warehouse,
+            SUM(sle.actual_qty) AS actual_qty,
+            COALESCE(
+                (SELECT price_list_rate
+                 FROM `tabItem Price`
+                 WHERE `tabItem Price`.item_code = sle.item_code
+                 AND `tabItem Price`.price_list = 'Standard Buying'
+                 AND `tabItem Price`.uom = item.stock_uom
+                 ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+                 LIMIT 1),
+                AVG(sle.valuation_rate)  -- fallback if no buying price exists
+            ) AS valuation_rate,
+            (SELECT price_list_rate
+             FROM `tabItem Price`
+             WHERE `tabItem Price`.item_code = sle.item_code
+             AND `tabItem Price`.price_list = 'Standard Selling'
+             AND `tabItem Price`.uom = item.stock_uom
+             ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+             LIMIT 1) AS selling_price,
+            item.stock_uom AS uom
+        FROM
+            `tabStock Ledger Entry` AS sle
+        JOIN
+            `tabItem` AS item ON sle.item_code = item.name
+        JOIN
+            `tabWarehouse` AS warehouse ON sle.warehouse = warehouse.name
+        WHERE
+            sle.docstatus < 2
+    """
+
+    params = []
+
+    # Optional cost center filter
+    if cost_center:
+        query += " AND warehouse.custom_cost_centre = %s"
+        params.append(cost_center)
+
+    query += """
+        GROUP BY sle.item_code, sle.warehouse
+        HAVING SUM(sle.actual_qty) != 0
+    """
+
+    stock_qty = frappe.db.sql(query, params, as_dict=True)
+
+    return stock_qty
+
+
 @frappe.whitelist()
 def reset_password_and_update_image(new_password=None, image_url=None):
     try:
