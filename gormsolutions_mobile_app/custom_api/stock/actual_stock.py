@@ -54,10 +54,6 @@ def get_stock_qty(cost_center=None):
     
     return stock_qty
 
-import frappe
-
-
-import frappe
 
 @frappe.whitelist()
 def get_stock_qty_ashlink(cost_center=None):
@@ -66,7 +62,8 @@ def get_stock_qty_ashlink(cost_center=None):
     - Current buying price as valuation rate (fallback to average valuation rate from SLE if no Item Price exists).
     - Selling price from Item Price.
     - UOM from Item.
-    - Show stock per specific warehouse, include positive and negative balances, exclude only zero.
+    - Show stock per specific warehouse, include positive, negative, and zero balances.
+    - Only hide items/warehouses that never appeared in Stock Ledger.
     Optionally filter by cost center, but do not restrict to a specific warehouse.
     """
 
@@ -112,12 +109,12 @@ def get_stock_qty_ashlink(cost_center=None):
 
     query += """
         GROUP BY sle.item_code, sle.warehouse
-        HAVING SUM(sle.actual_qty) != 0
     """
 
     stock_qty = frappe.db.sql(query, params, as_dict=True)
 
     return stock_qty
+
 
 
 @frappe.whitelist()

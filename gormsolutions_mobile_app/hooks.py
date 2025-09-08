@@ -146,16 +146,22 @@ doc_events = {
     "Item": {
         "validate": "gormsolutions_mobile_app.custom_api.disable.update_item_price"
     },
-    "Purchase Invoice": {
+    "Purchase Invoice": { 
         # "on_submit": "gormsolutions_mobile_app.custom_api.purchase_invoice.update_item_buying.update_item_buying_price"
         "on_submit": "gormsolutions_mobile_app.custom_api.stock.create_buying_rate.create_item_price_from_purchase_invoice"
     },
     "Sales Invoice": {
-        "validate": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.validate_credit_limit",
-        "on_update": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
-        "on_submit": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
-        "on_cancel": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+    # remove from validate
+    # "validate": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.validate_credit_limit",
+
+    "on_update": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+    "on_submit": [
+        "gormsolutions_mobile_app.custom_api.sales_person_targets_events.validate_credit_limit",
+        "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
+    ],
+    "on_cancel": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
     },
+
     "Payment Entry": {
         "on_submit": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",
         "on_cancel": "gormsolutions_mobile_app.custom_api.sales_person_targets_events.update_targets_on_invoice",

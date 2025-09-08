@@ -43,35 +43,51 @@ def update_targets_on_invoice(doc, method):
 import frappe
 from frappe import _
 
+def get_total_outstanding(user, company):
+    """
+    Calculate the total outstanding amount of all submitted Sales Invoices
+    owned by this user in a given company.
+    """
+    invoices = frappe.get_all(
+        "Sales Invoice",
+        filters={"owner": user, "company": company, "docstatus": 1},
+        fields=["outstanding_amount"]
+    )
+    return sum(d.outstanding_amount for d in invoices)
+
+
 def validate_credit_limit(doc, method):
-	"""Block Sales Invoice if credit limit is exceeded for the owner (user)"""
+    """
+    Block Sales Invoice submission if credit limit is exceeded.
+    Recalculate credit usage every time invoice is submitted or cancelled.
+    """
 
-	user = doc.owner
-	company = doc.company
+    user = doc.owner
+    company = doc.company
 
-	# Get active Sales Person Target for this user & company
-	target = frappe.get_value(
-		"Sales Person Targets",
-		{"user": user, "company": company, "dissable": 0},
-		["name", "credit_limit", "credit_amount"],
-		as_dict=True
-	)
+    # Get active Sales Person Target for this user & company
+    target = frappe.get_value(
+        "Sales Person Targets",
+        {"user": user, "company": company, "dissable": 0},
+        ["name", "credit_limit"],
+        as_dict=True
+    )
 
-	if not target:
-		return  # no target configured for this user, allow normally
+    if not target:
+        return  # no target configured for this user, allow normally
 
-	credit_limit = target.credit_limit or 0
-	current_credit = target.credit_amount or 0
-	new_invoice_outstanding = doc.outstanding_amount or doc.grand_total
+    credit_limit = target.credit_limit or 0
+    current_credit = get_total_outstanding(user, company)
 
-	# Check if limit exceeded
-	if credit_limit > 0 and (current_credit + new_invoice_outstanding) > credit_limit:
-		frappe.throw(
-			_("Credit limit exceeded for {0}! Current: {1}, New Invoice: {2}").format(
-				user, current_credit, new_invoice_outstanding
-			)
-		)
+    # Check if limit exceeded (only on submit, not cancel)
+    if method == "on_submit" and credit_limit > 0 and current_credit > credit_limit:
+        frappe.throw(
+            _("Credit limit exceeded for {0}! Current Usage: {1}, Limit: {2}")
+            .format(user, current_credit, credit_limit)
+        )
 
+    # Always update the Sales Person Target with the latest credit usage
+    frappe.db.set_value("Sales Person Targets", target.name, "credit_amount", current_credit)
 
 @frappe.whitelist()
 def fetch_credit_limit():
