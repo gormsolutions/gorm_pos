@@ -141,11 +141,11 @@ def create_invoice(
             return {"error": f"No conversion factor found for Loyalty Program {loyalty_program}."}
 
         loyalty_amount = flt(loyalty_points) * flt(conversion_factor)
-        payment_entries.append({
-            "mode_of_payment": royality_mode_of_payment,
-            "amount": loyalty_amount,
-            "reference_no": "Loyalty"
-        })
+        # payment_entries.append({
+        #     "mode_of_payment": royality_mode_of_payment,
+        #     "amount": loyalty_amount,
+        #     "reference_no": "Loyalty"
+        # })
 
     # Prepare and create Sales Invoice
     try:

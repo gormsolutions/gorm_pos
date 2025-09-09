@@ -1,0 +1,145 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-05 23:32:32.255242",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "stock_qty",
+  "original_qty",
+  "accepted_qty",
+  "difference_qty",
+  "default_source_warehouse",
+  "posting_date",
+  "column_break_hpet",
+  "status",
+  "cost_center",
+  "id",
+  "stock_entry_type",
+  "company",
+  "default_target_warehouse",
+  "posting_time"
+ ],
+ "fields": [
+  {
+   "fieldname": "id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "ID",
+   "options": "Stock Entry"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status"
+  },
+  {
+   "fieldname": "default_source_warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Default Source Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_hpet",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stock_entry_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Stock Entry Type"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "default_target_warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Default Target Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "options": "Item"
+  },
+  {
+   "fieldname": "stock_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Stock Qty",
+   "options": "Item"
+  },
+  {
+   "fieldname": "original_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Original Qty",
+   "options": "Item"
+  },
+  {
+   "fieldname": "accepted_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Accepted Qty",
+   "options": "Item"
+  },
+  {
+   "fieldname": "difference_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Difference Qty",
+   "options": "Item"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "posting date"
+  },
+  {
+   "fieldname": "posting_time",
+   "fieldtype": "Time",
+   "label": "posting time"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-06 00:38:09.011418",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Report Items",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

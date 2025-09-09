@@ -77,20 +77,20 @@ class PurchaseReturnManagement(Document):
 
             journal_entry = frappe.new_doc('Journal Entry')
             journal_entry.voucher_type = 'Journal Entry'
-            journal_entry.company = 'SANYU DISTRIBUTORS'
+            journal_entry.company = self.company
             journal_entry.posting_date = self.posting_date
             journal_entry.custom_suplier_return_id = self.name
 
             # Debit Entry
             journal_entry.append('accounts', {
-                'account': "2520 - Stock Received But Not Billed - SD",
+                'account': self.debit_account,
                 'debit_in_account_currency': self.grand_total,
                 'credit_in_account_currency': 0,
             })
                 
-            # Credit Entry
+            # Credit Entrycredit_account
             journal_entry.append('accounts', {
-                'account': "2170 - Creditors - SD",
+                'account': self.credit_account,
                 'party_type': "Supplier",
                 'party': self.supplier,
                 'debit_in_account_currency': 0,

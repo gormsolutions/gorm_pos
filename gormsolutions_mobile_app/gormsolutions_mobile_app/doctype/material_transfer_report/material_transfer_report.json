@@ -1,0 +1,121 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-05 23:24:04.861822",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "from_date",
+  "company",
+  "cost_center",
+  "item_name",
+  "stock_transfer_id",
+  "column_break_cwbe",
+  "to_date",
+  "source_warehouse",
+  "target_warehouse",
+  "fetch_report",
+  "download_csv",
+  "section_break_jouw",
+  "report_items"
+ ],
+ "fields": [
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "column_break_cwbe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "label": "Target Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Link",
+   "label": "Item Name",
+   "options": "Item"
+  },
+  {
+   "fieldname": "section_break_jouw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "report_items",
+   "fieldtype": "Table",
+   "label": "Report Items",
+   "options": "Report Items"
+  },
+  {
+   "fieldname": "fetch_report",
+   "fieldtype": "Button",
+   "label": "Fetch Feport"
+  },
+  {
+   "fieldname": "download_csv",
+   "fieldtype": "Button",
+   "label": "Download CSV"
+  },
+  {
+   "fieldname": "stock_transfer_id",
+   "fieldtype": "Link",
+   "label": "Stock Transfer ID",
+   "link_filters": "[[\"Stock Entry\",\"stock_entry_type\",\"=\",\"Material Transfer\"]]",
+   "options": "Stock Entry"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-06 00:18:17.739714",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Material Transfer Report",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

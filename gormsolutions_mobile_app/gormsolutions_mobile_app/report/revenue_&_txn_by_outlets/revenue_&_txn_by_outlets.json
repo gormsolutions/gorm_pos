@@ -1,0 +1,57 @@
+{
+ "add_total_row": 1,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-09 14:56:01.619328",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "start",
+   "fieldtype": "Date",
+   "label": "Start",
+   "mandatory": 1,
+   "options": "",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "end",
+   "fieldtype": "Date",
+   "label": "End",
+   "mandatory": 1,
+   "options": "",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "mandatory": 0,
+   "options": "Company",
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Main",
+ "letterhead": null,
+ "modified": "2025-09-09 14:56:31.449348",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Revenue & Txn by Outlets",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "query": "SELECT \n    a.cost_center AS \"Originating Outlet:400\", \n    SUM(a.grand_total) AS \"Total Sales:Currency:200\", \n    COUNT(DISTINCT a.name) AS \"Invoice Count:Int:100\" \nFROM \n    `tabSales Invoice` a \nWHERE \n    a.posting_date BETWEEN %(start)s AND %(end)s \n    AND a.docstatus = 1 \n    {% if company %} AND a.company = '{{ company }}' {% endif %}\nGROUP BY \n    a.cost_center \nORDER BY \n    SUM(a.grand_total) DESC",
+ "ref_doctype": "Sales Invoice",
+ "report_name": "Revenue & Txn by Outlets",
+ "report_script": "frappe.ui.form.on('Revenue by Outlet', {\n    refresh: function(frm) {\n        // Set default dates\n        if (!frm.doc.start) frm.set_value('start', frappe.datetime.get_today());\n        if (!frm.doc.end) frm.set_value('end', frappe.datetime.get_today());\n\n        // Set default company if not already selected\n        if (!frm.doc.company && frappe.boot.user.defaults.company) {\n            frm.set_value('company', frappe.boot.user.defaults.company);\n        }\n    },\n\n    start: function(frm) { frm.reload_doc(); },\n    end: function(frm) { frm.reload_doc(); },\n    company: function(frm) { frm.reload_doc(); }\n});",
+ "report_type": "Query Report",
+ "roles": [
+  { "role": "Accounts Manager" },
+  { "role": "Accounts User" },
+  { "role": "Employee Self Service" },
+  { "role": "System Manager" }
+ ],
+ "timeout": 0
+}
