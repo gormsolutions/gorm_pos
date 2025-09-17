@@ -3,37 +3,224 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+# @frappe.whitelist()
+# def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
+#     filters = {
+#         "posting_date": ["between", [from_date, to_date]],
+#         "voucher_subtype": ["!=", "Internal Transfer"],  # Exclude 'Internal Transfer'
+#         "is_cancelled": 0
+#     }
+#     if cost_center:
+#         filters["cost_center"] = cost_center
+#     if company:
+#         filters["company"] = company
+
+#     gl_entries = frappe.get_all(
+#         "GL Entry",
+#         filters=filters,
+#         fields=[
+#             "name as voucher_number",
+#             "voucher_no",
+#             "posting_date",
+#             "account",
+#             "debit",
+#             "credit",
+#             "cost_center",
+#             "against_voucher",
+#             "against_voucher_type",
+#             "party_type",
+#             "party",
+#             "voucher_subtype",
+#             "company"  # optional, useful for debugging or UI display
+#         ],
+#         order_by="posting_date asc"
+#     )
+
+#     grouped_data = {
+#         "Expenses": {"total": 0.0, "entries": []},
+#         "Invoices": {"total": 0.0, "entries": []},
+#         "Other": {"total": 0.0, "entries": []}
+#     }
+
+#     for entry in gl_entries:
+#         if not entry["account"]:
+#             continue
+
+#         account_doc = frappe.get_doc("Account", entry["account"])
+#         parent_account = account_doc.parent_account
+#         account_type = account_doc.account_type
+#         root_type = account_doc.root_type
+
+#         # Exclude entries with parent account 4100 - Direct Income - CCML
+#         if parent_account == "4100 - Direct Income - CCML":
+#             continue
+
+#         # Only process if root_type is either 'Income' or 'Expense'
+#         if root_type not in ["Income", "Expense"]:
+#             continue
+
+#         debit_amount = flt(entry.get("debit", 0))
+#         credit_amount = flt(entry.get("credit", 0))
+#         amount = debit_amount - credit_amount
+
+#         # Categorize and group entries
+#         if root_type == "Expense":   # ✅ all expenses (COGS + operating)
+#             grouped_data["Expenses"]["total"] += amount
+#             grouped_data["Expenses"]["entries"].append(entry)
+#         elif any(x in account_type for x in ["Income Account", "Bank", "Cash"]):
+#             grouped_data["Invoices"]["total"] += amount
+#             grouped_data["Invoices"]["entries"].append(entry)
+#         else:
+#             grouped_data["Other"]["total"] += amount
+#             grouped_data["Other"]["entries"].append(entry)
+
+#     # Calculate Total Income (Credits from Invoices + Other income)
+#     total_income = sum(flt(entry.get("credit", 0)) for entry in grouped_data["Invoices"]["entries"])
+#     total_income += sum(flt(entry.get("credit", 0)) for entry in grouped_data["Other"]["entries"])
+
+#     # Calculate Total Expense (Debits from all expenses)
+#     total_expense = sum(flt(entry.get("debit", 0)) for entry in grouped_data["Expenses"]["entries"])
+
+#     # Net Profit = Total Income - Total Expense
+#     net_profit = total_income - total_expense
+
+#     total_debit = sum([group["total"] for group in grouped_data.values()])
+#     total_credit = total_debit  # Assuming debit and credit are balanced
+
+#     return {
+#         "grouped_data": grouped_data,
+#         "total_income": total_income,
+#         "total_expense": total_expense,
+#         "net_profit": net_profit,
+#         "total_debit": total_debit,
+#         "total_credit": total_credit,
+#     }
+
+# import frappe
+# from frappe import _
+# from frappe.utils import flt
+
+# @frappe.whitelist()
+# def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
+#     filters = {
+#         "posting_date": ["between", [from_date, to_date]],
+#         "voucher_subtype": ["!=", "Internal Transfer"],  # Exclude 'Internal Transfer'
+#         "is_cancelled": 0
+#     }
+#     if cost_center:
+#         filters["cost_center"] = cost_center
+#     if company:
+#         filters["company"] = company
+
+#     gl_entries = frappe.get_all(
+#         "GL Entry",
+#         filters=filters,
+#         fields=[
+#             "name as voucher_number",
+#             "voucher_no",
+#             "posting_date",
+#             "account",
+#             "debit",
+#             "credit",
+#             "cost_center",
+#             "against_voucher",
+#             "against_voucher_type",
+#             "party_type",
+#             "party",
+#             "voucher_subtype",
+#             "company"
+#         ],
+#         order_by="posting_date asc"
+#     )
+
+#     grouped_data = {
+#         "Expenses": {"total": 0.0, "entries": []},
+#         "Invoices": {"total": 0.0, "entries": []},
+#         "Other": {"total": 0.0, "entries": []}
+#     }
+
+#     for entry in gl_entries:
+#         if not entry["account"]:
+#             continue
+
+#         account_doc = frappe.get_doc("Account", entry["account"])
+#         parent_account = account_doc.parent_account
+#         account_type = account_doc.account_type
+#         root_type = account_doc.root_type
+
+#         # Exclude entries with parent account 4100 - Direct Income - CCML
+#         if parent_account == "4100 - Direct Income - CCML":
+#             continue
+
+#         # Only process if root_type is either 'Income' or 'Expense'
+#         if root_type not in ["Income", "Expense"]:
+#             continue
+
+#         debit_amount = flt(entry.get("debit", 0))
+#         credit_amount = flt(entry.get("credit", 0))
+#         amount = debit_amount - credit_amount
+
+#         # Categorize and group entries
+#         if root_type == "Expense":   # ✅ all expenses (COGS + operating)
+#             grouped_data["Expenses"]["total"] += amount
+#             grouped_data["Expenses"]["entries"].append(entry)
+#         elif any(x in account_type for x in ["Income Account", "Bank", "Cash"]):
+#             grouped_data["Invoices"]["total"] += amount
+#             grouped_data["Invoices"]["entries"].append(entry)
+#         else:
+#             grouped_data["Other"]["total"] += amount
+#             grouped_data["Other"]["entries"].append(entry)
+
+#     return {
+#         "grouped_data": grouped_data
+#     }
+
+import frappe
+from frappe.utils import flt
+
 @frappe.whitelist()
 def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
-    filters = {
-        "posting_date": ["between", [from_date, to_date]],
-        "voucher_subtype": ["!=", "Internal Transfer"],  # Exclude 'Internal Transfer'
-        "is_cancelled": 0
-    }
+    conditions = [
+        "gle.posting_date BETWEEN %(from_date)s AND %(to_date)s",
+        "gle.voucher_subtype != 'Internal Transfer'",
+        "gle.is_cancelled = 0"
+    ]
     if cost_center:
-        filters["cost_center"] = cost_center
+        conditions.append("gle.cost_center = %(cost_center)s")
     if company:
-        filters["company"] = company
+        conditions.append("gle.company = %(company)s")
 
-    gl_entries = frappe.get_all(
-        "GL Entry",
-        filters=filters,
-        fields=[
-            "name as voucher_number",
-            "voucher_no",
-            "posting_date",
-            "account",
-            "debit",
-            "credit",
-            "against_voucher",
-            "against_voucher_type",
-            "party_type",
-            "party",
-            "voucher_subtype",
-            "company"  # optional, useful for debugging or UI display
-        ],
-        order_by="posting_date asc"
-    )
+    where_clause = " AND ".join(conditions)
+
+    # ✅ JOIN Account to avoid per-row lookups
+    gl_entries = frappe.db.sql(f"""
+        SELECT
+            gle.name as voucher_number,
+            gle.voucher_no,
+            gle.posting_date,
+            gle.account,
+            gle.debit,
+            gle.credit,
+            gle.cost_center,
+            gle.against_voucher,
+            gle.against_voucher_type,
+            gle.party_type,
+            gle.party,
+            gle.voucher_subtype,
+            gle.company,
+            acc.parent_account,
+            acc.account_type,
+            acc.root_type
+        FROM `tabGL Entry` gle
+        LEFT JOIN `tabAccount` acc ON gle.account = acc.name
+        WHERE {where_clause}
+        ORDER BY gle.posting_date ASC
+    """, {
+        "from_date": from_date,
+        "to_date": to_date,
+        "cost_center": cost_center,
+        "company": company
+    }, as_dict=True)
 
     grouped_data = {
         "Expenses": {"total": 0.0, "entries": []},
@@ -45,56 +232,32 @@ def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=No
         if not entry["account"]:
             continue
 
-        account_doc = frappe.get_doc("Account", entry["account"])
-        parent_account = account_doc.parent_account
-        account_type = account_doc.account_type
-        root_type = account_doc.root_type
-
-        # Exclude entries with parent account 4100 - Direct Income - CCML
-        if parent_account == "4100 - Direct Income - CCML":
+        # ✅ Exclude "4100 - Direct Income - CCML" only for CRAVE CITY MEGA LIMITED
+        if (
+            entry.get("company") == "CRAVE CITY MEGA LIMITED"
+            and entry.get("parent_account") == "4100 - Direct Income - CCML"
+        ):
             continue
 
         # Only process if root_type is either 'Income' or 'Expense'
-        if root_type not in ["Income", "Expense"]:
+        if entry.get("root_type") not in ["Income", "Expense"]:
             continue
 
         debit_amount = flt(entry.get("debit", 0))
         credit_amount = flt(entry.get("credit", 0))
         amount = debit_amount - credit_amount
 
-        # Categorize and group entries
-        if root_type == "Expense":   # ✅ all expenses (COGS + operating)
+        if entry.get("root_type") == "Expense":
             grouped_data["Expenses"]["total"] += amount
             grouped_data["Expenses"]["entries"].append(entry)
-        elif any(x in account_type for x in ["Income Account", "Bank", "Cash"]):
+        elif any(x in (entry.get("account_type") or "") for x in ["Income Account", "Bank", "Cash"]):
             grouped_data["Invoices"]["total"] += amount
             grouped_data["Invoices"]["entries"].append(entry)
         else:
             grouped_data["Other"]["total"] += amount
             grouped_data["Other"]["entries"].append(entry)
 
-    # Calculate Total Income (Credits from Invoices + Other income)
-    total_income = sum(flt(entry.get("credit", 0)) for entry in grouped_data["Invoices"]["entries"])
-    total_income += sum(flt(entry.get("credit", 0)) for entry in grouped_data["Other"]["entries"])
-
-    # Calculate Total Expense (Debits from all expenses)
-    total_expense = sum(flt(entry.get("debit", 0)) for entry in grouped_data["Expenses"]["entries"])
-
-    # Net Profit = Total Income - Total Expense
-    net_profit = total_income - total_expense
-
-    total_debit = sum([group["total"] for group in grouped_data.values()])
-    total_credit = total_debit  # Assuming debit and credit are balanced
-
-    return {
-        "grouped_data": grouped_data,
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "net_profit": net_profit,
-        "total_debit": total_debit,
-        "total_credit": total_credit,
-    }
-
+    return {"grouped_data": grouped_data}
 
 import frappe
 from frappe.utils import flt
