@@ -1,0 +1,81 @@
+{
+ "add_total_row": 1,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-18 13:27:44.252467",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "start",
+   "fieldtype": "Date",
+   "label": "Start",
+   "mandatory": 1,
+   "options": "",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "end",
+   "fieldtype": "Date",
+   "label": "End",
+   "mandatory": 1,
+   "options": "",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "mandatory": 0,
+   "options": "Company",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "mandatory": 0,
+   "options": "Warehouse",
+   "wildcard_filter": 0
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "mandatory": 0,
+   "options": "Item",
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Main",
+ "letterhead": null,
+ "modified": "2025-09-18 13:49:58.993975",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "Product Ledger Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    sle.item_code AS \"Item:Link/Item:200\",\r\n    sle.warehouse AS \"Warehouse:Link/Warehouse:150\",\r\n    sle.qty_after_transaction AS \"Qty Balance:Float:120\",\r\n    sle.posting_date AS \"Posting Date:Date:100\",\r\n    sle.posting_time AS \"Posting Time:Time:80\",\r\n    sle.company AS \"Company:Link/Company:120\"\r\nFROM\r\n    `tabStock Ledger Entry` sle\r\nWHERE\r\n    sle.docstatus = 1\r\n    AND sle.company = %(company)s\r\n    AND sle.posting_date BETWEEN %(start)s AND %(end)s\r\n    AND (COALESCE(%(warehouse)s, '') = '' OR sle.warehouse = %(warehouse)s)\r\n    AND (COALESCE(%(item_code)s, '') = '' OR sle.item_code = %(item_code)s)\r\n    AND NOT EXISTS (\r\n        SELECT 1\r\n        FROM `tabStock Ledger Entry` sle2\r\n        WHERE\r\n            sle2.item_code = sle.item_code\r\n            AND sle2.warehouse = sle.warehouse\r\n            AND sle2.docstatus = 1\r\n            AND sle2.posting_date BETWEEN %(start)s AND %(end)s\r\n            AND (\r\n                sle2.posting_date > sle.posting_date\r\n                OR (sle2.posting_date = sle.posting_date AND sle2.posting_time > sle.posting_time)\r\n            )\r\n    )\r\nORDER BY\r\n    sle.item_code, sle.warehouse;\r\n",
+ "ref_doctype": "Stock Ledger Entry",
+ "report_name": "Product Ledger Report",
+ "report_script": "",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}

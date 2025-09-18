@@ -583,3 +583,32 @@ def get_item_details_company(limit, offset, search=None, user=None, last_sync=No
             item["is_bundle"] = False
 
     return items
+
+import frappe  # type: ignore
+
+@frappe.whitelist()
+def get_permitted_item_groups(user=None):
+    current_user = user or frappe.session.user
+
+    # Step 1: Get user's POS Profile
+    pos_profiles = frappe.get_all("POS Profile", filters={"disabled": 0}, fields=["name"])
+    pos_profile_name = None
+    for profile in pos_profiles:
+        user_found = frappe.get_all(
+            "POS Profile User",
+            filters={"parent": profile.name, "user": current_user},
+            limit=1
+        )
+        if user_found:
+            pos_profile_name = profile.name
+            break
+
+    if not pos_profile_name:
+        return []
+
+    pos_profile = frappe.get_doc("POS Profile", pos_profile_name)
+
+    # Step 2: Return only the permitted item groups (no children)
+    permitted_item_groups = [row.item_group for row in pos_profile.item_groups if row.item_group]
+
+    return permitted_item_groups

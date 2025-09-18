@@ -162,7 +162,8 @@ doc_events = {
     "Stock Entry": {
         "before_save": [
             "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer",
-            "gormsolutions_mobile_app.custom_api.stock.validate_stock_transfer.validate_stock_before_transfer"
+            "gormsolutions_mobile_app.custom_api.stock.validate_stock_transfer.validate_stock_before_transfer",
+             "gormsolutions_mobile_app.custom_api.stock.validate_stock_transfer.validate_stock_entry"
         ],
         # "before_save": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.validate_user_stock_transfer",
 		# "on_update": "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.notify_permitted_users_on_save",
