@@ -1,86 +1,70 @@
-frappe.pages['stock-ledger-report'].on_page_load = function (wrapper) {
+frappe.pages['stock-ledger-report'].on_page_load = function(wrapper) {
     const page = frappe.ui.make_app_page({
         parent: wrapper,
         title: __('Stock Ledger Report'),
         single_column: true
     });
+const today = frappe.datetime.get_today();
+const one_month_ago = frappe.datetime.add_months(today, -1);
 
-    /* -------------------- filter fields -------------------- */
-    const today = frappe.datetime.get_today();
-    const filters = {
-        company: page.add_field({
-            label: __('Company'),
-            fieldtype: 'Link',
-            options: 'Company',
-            default: frappe.defaults.get_default("company"),
-            change: () => reset_and_load()
-        }),
-        item_code: page.add_field({
-            label: __('Item Code'),
-            fieldtype: 'Link',
-            options: 'Item',
-            change: () => reset_and_load()
-        }),
-        item_name: page.add_field({
-            label: __('Item Name'),
-            fieldtype: 'Data',
-            change: () => debounced_search()
-        }),
-        item_group: page.add_field({
-            label: __('Item Group'),
-            fieldtype: 'Link',
-            options: 'Item Group',
-            change: () => reset_and_load()
-        }),
-        warehouse: page.add_field({
-            label: __('Warehouse'),
-            fieldtype: 'Link',
-            options: 'Warehouse',
-            change: () => reset_and_load()
-        }),
-        from_date: page.add_field({
-            label: __('From Date'),
-            fieldtype: 'Date',
-            default: today,
-            change: () => reset_and_load()
-        }),
-        to_date: page.add_field({
-            label: __('To Date'),
-            fieldtype: 'Date',
-            default: today,
-            change: () => reset_and_load()
-        })
-    };
+// get default company from Frappe, fallback to DIVA CAKES
+let defaultCompany = frappe.defaults.get_default("company") || "DIVA CAKES";
 
-    /* -------------------- quick search -------------------- */
-    const $quickSearch = $(`
-        <div class="frappe-control">
-            <input type="text" id="quick-search" class="form-control form-control-sm"
-                   placeholder="${__('Type to search code / name')}" style="width:220px;">
-        </div>`);
-    page.page_actions.append($quickSearch);
+// set default warehouse based on company
+let defaultWarehouse = "";
+if (defaultCompany === "CRAVE CITY MEGA LIMITED") {
+    defaultWarehouse = "Inventory FGs Shopfloor - Abule Egba (CC)  - CCML";
+} else if (defaultCompany === "DIVA CAKES") {
+    defaultWarehouse = "ABULEGBA - DC";
+}
+// add more companies if needed
+// else if (defaultCompany === "ANOTHER COMPANY") {
+//     defaultWarehouse = "Warehouse Name";
+// }
 
-    /* -------------------- controls bar -------------------- */
-    const $controls = $(`
-        <div class="mb-2 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <label>${__('Rows/page')}:
-                    <select id="page-size" class="form-control form-control-sm d-inline-block w-auto">
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                    </select>
-                </label>
-                <button class="btn btn-secondary btn-sm ml-2" id="load-more">${__('Load More')}</button>
-                <span id="loading-indicator" class="text-muted ml-2" style="display:none;">${__('Loading...')}</span>
-                <span id="rows-loaded" class="text-muted ml-3"></span>
-            </div>
-            <div>
-                <button class="btn btn-secondary btn-sm" id="export-excel">${__('Export Excel')}</button>
-                <button class="btn btn-secondary btn-sm" id="print-pdf">${__('Print')}</button>
-            </div>
-        </div>`).appendTo(page.body);
+/* -------------------- filters -------------------- */
+const filters = {
+    company: page.add_field({
+        label: __('Company'),
+        fieldtype: 'Link',
+        options: 'Company',
+        default: defaultCompany
+    }),
+    item_code: page.add_field({ 
+        label: __('Item Code'), 
+        fieldtype: 'Link', 
+        options: 'Item' 
+    }),
+    item_name: page.add_field({ 
+        label: __('Item Name'), 
+        fieldtype: 'Data' 
+    }),
+    item_group: page.add_field({ 
+        label: __('Item Group'), 
+        fieldtype: 'Link', 
+        options: 'Item Group' 
+    }),
+    warehouse: page.add_field({
+        label: __('Warehouse'),
+        fieldtype: 'Link',
+        options: 'Warehouse',
+        default: defaultWarehouse
+    }),
+    from_date: page.add_field({ 
+        label: __('From Date'), 
+        fieldtype: 'Date', 
+        default: one_month_ago 
+    }),
+    to_date: page.add_field({ 
+        label: __('As of Date'), 
+        fieldtype: 'Date', 
+        default: today 
+    })
+};
+
+/* Auto-fetch on any filter change */
+Object.values(filters).forEach(f => f.$input.on('change', () => reset_and_load()));
+
 
     /* -------------------- table -------------------- */
     const $tableWrap = $(`
@@ -88,187 +72,200 @@ frappe.pages['stock-ledger-report'].on_page_load = function (wrapper) {
             <table class="table table-bordered table-hover table-sm" id="stock-ledger-table">
                 <thead class="thead-dark">
                     <tr>
-                        <th>${__('Date & Time')}</th>
-                        <th>${__('Voucher')}</th>
-                        <th>${__('Item Code')}</th>
-                        <th>${__('Item Name')}</th>
-                        <th>${__('Warehouse')}</th>
-                        <th class="text-right">${__('In')}</th>
-                        <th class="text-right">${__('Out')}</th>
-                        <th class="text-right">${__('Balance')}</th>
-                        <th class="text-right">${__('Rate')}</th>
-                        <th class="text-right">${__('Value')}</th>
+                        <th>${__('Date')}</th><th>${__('Time')}</th><th>${__('Item Code')}</th><th>${__('Item Name')}</th>
+                        <th>${__('Item Group')}</th><th>${__('Warehouse')}</th><th class="text-right">${__('Opening Balance')}</th>
+                        <th class="text-right">${__('In Qty')}</th><th class="text-right">${__('Out Qty')}</th><th class="text-right">${__('Running Balance')}</th>
+                        <th class="text-right">${__('Valuation Rate')}</th><th class="text-right">${__('Valuation Amount')}</th>
+                        <th>${__('Voucher Type')}</th><th>${__('Voucher No')}</th>
                     </tr>
                 </thead>
                 <tbody id="stock-ledger-body"></tbody>
             </table>
-        </div>`).appendTo(page.body);
+        </div>
+    `).appendTo(page.body);
 
-    const $tbody      = $('#stock-ledger-body');
-    const $loadBtn    = $('#load-more');
-    const $loading    = $('#loading-indicator');
-    const $rowsLoaded = $('#rows-loaded');
+   const $tbody = $('#stock-ledger-body');
+
+/* -------------------- buttons + status -------------------- */
+const $btnWrap = $('<div class="mb-2 d-flex align-items-center"></div>').prependTo(page.body);
+const $loadBtn = $('<button class="btn btn-secondary btn-sm mr-2">' + __('Load More') + '</button>').appendTo($btnWrap);
+const $printBtn = $('<button class="btn btn-info btn-sm mr-2">' + __('Print') + '</button>').appendTo($btnWrap);
+const $excelBtn = $('<button class="btn btn-success btn-sm mr-2">' + __('Download Excel') + '</button>').appendTo($btnWrap);
+
+// status indicators moved here
+const $rowsLoaded = $('<span class="ml-3 text-muted"></span>').appendTo($btnWrap);
+const $loading = $('<span class="ml-2 text-muted" style="display:none;">' + __('Loading...') + '</span>').appendTo($btnWrap);
+const $loadingSec = $('<span class="ml-2 text-muted">0s</span>').appendTo($btnWrap);
+
 
     /* -------------------- state -------------------- */
-    let lastKey   = null;
-    let pageSize  = 50; // initial small load
+    let allRows = [];
+    let lastKey = null;
     let isLoading = false;
-    let canGrow   = true;
-    let allRows   = [];
-    let filteredRows = [];
+    // let pageSize = 10;
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let opening_balances = {};
+    let loadedKeys = new Set();
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timerSeconds = 0;
+        $loadingSec.text(`${timerSeconds}s`);
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            $loadingSec.text(`${timerSeconds}s`);
+        }, 1000);
+    }
+
+    function stopTimer() { clearInterval(timerInterval); }
 
     /* -------------------- fetch data -------------------- */
-    function fetch(next = false) {
-        if (isLoading) return;
+    function fetch(next=false){
+        if(isLoading) return;
         isLoading = true;
 
-        if (!next) {
-            lastKey   = null;
-            allRows   = [];
-            filteredRows = [];
-            $tbody.empty();
-            canGrow   = true;
-            pageSize  = parseInt($('#page-size').val()) || 50;
+        if(!next){
+            lastKey = null; allRows = []; opening_balances = {}; loadedKeys.clear();
+            $tbody.empty(); $rowsLoaded.text(''); $loadingSec.text('0s');
         }
 
-        $loadBtn.prop('disabled', true);
         $loading.show();
+        startTimer();
+
+        const args = {
+            company: filters.company.get_value() || '',
+            warehouse: filters.warehouse.get_value() || null,
+            items: filters.item_code.get_value() || null,
+            search_text: filters.item_name.get_value() || '',
+            item_group: filters.item_group.get_value() || '',
+            from_date: filters.from_date.get_value() || '',
+            to_date: filters.to_date.get_value() || '',
+            last_key: lastKey,
+            // page_size: pageSize
+        };
 
         frappe.call({
             method: "gormsolutions_mobile_app.custom_api.reports.get_stock_ledger_ledger.get_stock_ledger_ledger",
-            args: {
-                items: filters.item_code.get_value() || filters.item_name.get_value(),
-                company: filters.company.get_value(),
-                warehouse: filters.warehouse.get_value(),
-                item_group: filters.item_group.get_value(),
-                from_date: filters.from_date.get_value(),
-                to_date: filters.to_date.get_value(),
-                last_key: lastKey,
-                page_size: pageSize
-            },
-            callback: r => {
-                if (r.message && r.message.data.length) {
-                    const chunk = r.message.data.map(row => ({
-                        ...row,
-                        valuation_amount: flt(row.stock_value)
-                    }));
-                    allRows.push(...chunk);
-                    lastKey = r.message.next_key;
+            args: args,
+            callback: r=>{
+                console.log(r)
+                stopTimer();
 
-                    if (r.message.data.length < pageSize) canGrow = false;
-                    else if (canGrow) pageSize = Math.min(pageSize * 2, 1000); // progressive load
+                if(r.message && r.message.data && r.message.data.length){
+                    opening_balances = r.message.opening_balances || {};
 
-                    applySearch();
-                    $rowsLoaded.text(__('Loaded') + ' ' + allRows.length);
-                    lastKey ? $loadBtn.show() : $loadBtn.hide();
+                    const newRows = r.message.data.filter(row=>{
+                        const uniq = row.name;
+                        if(!loadedKeys.has(uniq)){
+                            loadedKeys.add(uniq);
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    if(newRows.length){
+                        allRows = allRows.concat(newRows);
+                        renderRows(newRows);
+                        $rowsLoaded.text(`Loaded ${allRows.length} rows in ${timerSeconds}s`);
+                    } else {
+                        $rowsLoaded.text('No more data to load.');
+                    }
+
+                    lastKey = r.message.next_key || null;
+                    if(!lastKey){
+                        $loadBtn.prop('disabled', true);
+                    } else {
+                        $loadBtn.prop('disabled', false);
+                    }
                 } else {
-                    canGrow = false; $loadBtn.hide();
+                    $rowsLoaded.text('No data to load.');
+                    $loadBtn.prop('disabled', true);
                 }
+
+                isLoading = false;
+                $loading.hide();
             },
-            always: () => { isLoading = false; $loadBtn.prop('disabled', false); $loading.hide(); }
+            error: ()=>{
+                stopTimer();
+                $rowsLoaded.text('Error loading data. Please try again.');
+                isLoading = false;
+                $loadBtn.prop('disabled', false);
+                $loading.hide();
+            }
         });
     }
 
-    /* -------------------- infinite scroll -------------------- */
-    $tableWrap.on('scroll', function () {
-        if (canGrow && !isLoading && (this.scrollTop + this.clientHeight >= this.scrollHeight - 50)) fetch(true);
+    /* -------------------- render rows -------------------- */
+    function getVoucherURL(voucher_type, voucher_no){
+        const base_url = frappe.urllib.get_base_url();
+        const url_type = voucher_type.toLowerCase().replace(/\s+/g,'-');
+        return `${base_url}/app/${url_type}/${voucher_no}`;
+    }
+
+    function renderRows(rows){
+        $tbody.append(rows.map(r => {
+            const opening = opening_balances[`${r.item_code}|${r.warehouse}`] || 0;
+            return `
+                <tr>
+                    <td>${r.posting_date}</td>
+                    <td>${r.posting_time}</td>
+                    <td>${r.item_code}</td>
+                    <td>${r.item_name}</td>
+                    <td>${r.item_group}</td>
+                    <td>${r.warehouse}</td>
+                    <td class="text-right">${flt(opening,2).toLocaleString()}</td>
+                    <td class="text-right">${flt(r.in_qty,2).toLocaleString()}</td>
+                    <td class="text-right">${flt(r.out_qty,2).toLocaleString()}</td>
+                    <td class="text-right">${flt(r.running_balance,2).toLocaleString()}</td>
+                    <td class="text-right">${flt(r.valuation_rate,2).toLocaleString()}</td>
+                    <td class="text-right">${flt(r.valuation_amount,2).toLocaleString()}</td>
+                    <td>${r.voucher_type}</td>
+                    <td>${r.voucher_no ? `<a href="${getVoucherURL(r.voucher_type,r.voucher_no)}" target="_blank">${r.voucher_no}</a>` : ''}</td>
+                </tr>
+            `;
+        }).join(''));
+    }
+
+    /* -------------------- reset + load -------------------- */
+    function reset_and_load(){ fetch(false); }
+
+    $loadBtn.on('click', ()=>fetch(true));
+
+    $printBtn.on('click', ()=>{
+        const w = window.open('', '_blank');
+        w.document.write('<html><head><title>Stock Ledger</title></head><body>');
+        w.document.write($('#stock-ledger-table')[0].outerHTML);
+        w.document.write('</body></html>');
+        w.document.close();
+        w.print();
     });
 
-    /* -------------------- search -------------------- */
-    const debounced_search = frappe.utils.debounce(applySearch, 300);
-    $('#quick-search').on('input', debounced_search);
+    $excelBtn.on('click', ()=>{
+        if(typeof XLSX === 'undefined'){
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            script.onload = ()=>downloadExcel();
+            document.head.appendChild(script);
+        } else { downloadExcel(); }
 
-    function applySearch() {
-        const needle = $('#quick-search').val().trim().toLowerCase();
-        filteredRows = needle
-            ? allRows.filter(r =>
-                (r.item_code || '').toLowerCase().includes(needle) ||
-                (r.item_name || '').toLowerCase().includes(needle))
-            : allRows;
-        renderRows(filteredRows);
-    }
-
-    /* -------------------- render table -------------------- */
-    function renderRows(rows) {
-        const rowsHtml = rows.map(r => `
-            <tr>
-                <td>${frappe.datetime.str_to_user(r.posting_date)} ${r.posting_time}</td>
-                <td>
-                    <a href="/app/${r.voucher_type.toLowerCase().replace(' ', '-')}/${r.voucher_no}" target="_blank">
-                        ${r.voucher_type}<br><small>${r.voucher_no}</small>
-                    </a>
-                </td>
-                <td>${r.item_code}</td>
-                <td>${r.item_name}</td>
-                <td>${r.warehouse}</td>
-                <td class="text-right text-success">${r.in_qty ? formatNumber(r.in_qty) : ''}</td>
-                <td class="text-right text-danger">${r.out_qty ? formatNumber(r.out_qty) : ''}</td>
-                <td class="text-right">${formatNumber(r.running_balance)}</td>
-                <td class="text-right">${formatNumber(r.valuation_rate)}</td>
-                <td class="text-right">${formatNumber(r.valuation_amount)}</td>
-            </tr>`).join('');
-        $tbody.html(rowsHtml);
-    }
-
-    /* -------------------- helpers -------------------- */
-    function formatNumber(v) {
-        return flt(v, 2).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    }
-    function reset_and_load() { fetch(false); }
-
-    /* -------------------- export / print -------------------- */
-    $('#export-excel').on('click', () => {
-        if (typeof XLSX === 'undefined') {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-            s.onload = () => downloadExcel();
-            document.head.appendChild(s);
-        } else downloadExcel();
-
-        function downloadExcel() {
-            const ws_data = [
-                ['Date-Time', 'Voucher', 'Item Code', 'Item Name', 'Warehouse', 'In', 'Out', 'Balance', 'Rate', 'Value']
-            ];
-            filteredRows.forEach(r => ws_data.push([
-                `${r.posting_date} ${r.posting_time}`,
-                r.voucher_type + ' ' + r.voucher_no,
-                r.item_code, r.item_name, r.warehouse,
-                r.in_qty, r.out_qty, r.running_balance,
-                r.valuation_rate, r.valuation_amount
-            ]));
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws_data), 'StockLedger');
-            XLSX.writeFile(wb, `StockLedger_${frappe.datetime.get_today()}.xlsx`);
+        function downloadExcel(){
+            let wb = XLSX.utils.book_new();
+            let ws_data = [['Date','Time','Item Code','Item Name','Item Group','Warehouse','Opening Balance','In Qty','Out Qty','Running Balance','Valuation Rate','Valuation Amount','Voucher Type','Voucher No']];
+            allRows.forEach(r=>{
+                const opening = opening_balances[`${r.item_code}|${r.warehouse}`] || 0;
+                ws_data.push([
+                    r.posting_date, r.posting_time, r.item_code, r.item_name, r.item_group,
+                    r.warehouse, opening, r.in_qty, r.out_qty, r.running_balance,
+                    r.valuation_rate, r.valuation_amount, r.voucher_type, r.voucher_no
+                ]);
+            });
+            let ws = XLSX.utils.aoa_to_sheet(ws_data);
+            XLSX.utils.book_append_sheet(wb, ws, "Stock Ledger");
+            XLSX.writeFile(wb, "Stock_Ledger.xlsx");
         }
     });
 
-    $('#print-pdf').on('click', () => {
-        const win = window.open('', 'Print', 'width=1200,height=800');
-        win.document.write('<html><head><title>Stock Ledger</title>');
-        win.document.write('<link rel="stylesheet" href="/assets/frappe/css/bootstrap-4.css">');
-        win.document.write(`<style>
-            body{margin:20px;font-size:12px}
-            .text-success{color:#28a745;font-weight:bold}
-            .text-danger {color:#dc3545;font-weight:bold}
-            tfoot td{font-weight:bold;background:#f1f1f1}
-        </style></head><body>`);
-        win.document.write('<h4>Stock Ledger Report - ' + frappe.datetime.get_today() + '</h4>');
-        win.document.write(document.getElementById('stock-ledger-table').outerHTML);
-        win.document.write('</body></html>');
-        win.document.close();
-        setTimeout(() => { win.print(); win.close(); }, 250);
-    });
-
-    /* -------------------- keyboard shortcuts -------------------- */
-    $(document).on('keydown', e => {
-        if (e.ctrlKey && e.key === 'e') $('#export-excel').click();
-        if (e.ctrlKey && e.key === 'p') $('#print-pdf').click();
-    });
-
-    /* -------------------- UI events -------------------- */
-    $('#page-size').on('change', reset_and_load);
-    $('#load-more').on('click', () => fetch(true));
-
-    /* -------------------- initial fetch -------------------- */
-    fetch(false); // fetch only today initially
+    /* -------------------- initial load -------------------- */
+    fetch(false);
 };

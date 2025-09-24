@@ -173,7 +173,7 @@ def create_invoice(
             invoice_doc_data["pos_profile"] = pos_profile
 
         invoice_doc = frappe.get_doc(invoice_doc_data)
-        invoice_doc.insert(ignore_permissions=True)
+        invoice_doc.insert()
         invoice_doc.submit()
 
         return invoice_doc

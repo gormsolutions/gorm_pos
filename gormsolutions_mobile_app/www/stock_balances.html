@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stock Ledger Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; background-color: #f4f5f7; }
+    table { border-collapse: separate; border-spacing: 0; border-radius: 0.75rem; overflow: hidden; }
+    th, td { white-space: nowrap; }
+    th { background-color: #1f2937; color: #fff; font-weight: 600; }
+    tbody tr:hover { background-color: #e0f2fe; }
+    .filter-input { transition: all 0.3s ease; }
+    .filter-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
+    .btn { transition: all 0.3s ease; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+    .table-wrapper { overflow-x: auto; border-radius: 0.75rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    #loader { display:flex; align-items:center; gap:8px; font-weight:500; color:#1f2937; margin-bottom:8px; }
+    @media print { body * { visibility: hidden; } #printable, #printable * { visibility: visible; } #printable { position:absolute; left:0; top:0; width:100%; } }
+</style>
+</head>
+<body class="p-6">
+
+<div class="container mx-auto">
+    <h1 class="text-4xl font-extrabold mb-6 text-gray-800">📊 Stock Ledger Report</h1>
+
+    <!-- Loader -->
+    <div id="loader" class="hidden">
+        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        <span id="loaderText">Fetching data... 0s</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        <input list="items" id="item_code" placeholder="All Items" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        <datalist id="items"></datalist>
+
+        <input list="companies" id="company" placeholder="All Companies" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        <datalist id="companies"></datalist>
+
+        <input list="warehouses" id="warehouse" placeholder="All Warehouses" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        <datalist id="warehouses"></datalist>
+
+        <input list="item_groups" id="item_group" placeholder="All Item Groups" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        <datalist id="item_groups"></datalist>
+
+        <input type="text" id="voucher_no" placeholder="Voucher No" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        <div class="flex flex-col">
+            <input type="date" id="from_date" class="filter-input p-2 border rounded-lg mb-1 shadow-sm"/>
+            <input type="date" id="to_date" class="filter-input p-2 border rounded-lg shadow-sm"/>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex flex-wrap gap-3 mb-6">
+        <button id="filterBtn" class="btn bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md hover:bg-blue-700">Apply Filters</button>
+        <button id="downloadBtn" class="btn bg-green-500 text-white px-6 py-2 rounded-lg font-semibold shadow-md hover:bg-green-600">Download Excel</button>
+        <button id="printBtn" class="btn bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold shadow-md hover:bg-gray-800">Print</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper mb-6" id="printable">
+        <table id="stockTable" class="min-w-full table-auto border-separate border-spacing-0">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2 border">Item Code</th>
+                    <th class="px-4 py-2 border">Item Name</th>
+                    <th class="px-4 py-2 border">Warehouse</th>
+                    <th class="px-4 py-2 border">Company</th>
+                    <th class="px-4 py-2 border">Qty After Transaction</th>
+                    <th class="px-4 py-2 border">Valuation Rate</th>
+                    <th class="px-4 py-2 border">Voucher No</th>
+                    <th class="px-4 py-2 border">Posting Date</th>
+                    <th class="px-4 py-2 border">Posting Time</th>
+                    <th class="px-4 py-2 border">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="stockBody" class="divide-y bg-white"></tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between mb-12">
+        <button id="prevPage" class="btn bg-gray-300 px-4 py-2 rounded-lg">Previous</button>
+        <button id="nextPage" class="btn bg-gray-300 px-4 py-2 rounded-lg">Next</button>
+    </div>
+</div>
+
+<script>
+let cursor=null, previousCursors=[], filterCache={}, startTime, timerInterval;
+
+function startTimer(){
+    startTime=Date.now();
+    timerInterval=setInterval(()=>{
+        document.getElementById("loaderText").textContent=`Fetching data... ${Math.floor((Date.now()-startTime)/1000)}s`;
+    },1000);
+}
+function stopTimer(){ clearInterval(timerInterval); }
+
+async function getCsrfToken(){
+    const resp=await fetch('/api/method/gormsolutions_mobile_app.custom_api.auth.regenerate_session',{method:'GET',credentials:'include'});
+    const data=await resp.json();
+    return data.message.csrf_token;
+}
+
+async function loadFilterOptions(id,resource,key,datalistId){
+    if(filterCache[id]) return;
+    try{
+        const resp=await fetch(`/api/resource/${resource}?fields=["${key}"]&limit_page_length=1000`,{credentials:"same-origin"});
+        const data=await resp.json();
+        filterCache[id]=data.data;
+        const datalist=document.getElementById(datalistId);
+        data.data.forEach(row=>{ const option=document.createElement("option"); option.value=row[key]; datalist.appendChild(option); });
+    }catch(err){ console.error(`Error loading ${resource}:`,err); }
+}
+
+async function loadFilters(){
+    await Promise.all([
+        loadFilterOptions("item_code","Item","item_code","items"),
+        loadFilterOptions("company","Company","name","companies"),
+        loadFilterOptions("warehouse","Warehouse","name","warehouses"),
+        loadFilterOptions("item_group","Item Group","name","item_groups")
+    ]);
+}
+
+// Update warehouses based on company
+document.getElementById("company").addEventListener("input",function(){
+    const company=this.value;
+    const warehouseDatalist=document.getElementById("warehouses");
+    warehouseDatalist.innerHTML="";
+    if(!company) return;
+    const allWarehouses=filterCache["warehouse"] || [];
+    allWarehouses.filter(w=>w.company===company).forEach(w=>{
+        const option=document.createElement("option");
+        option.value=w.name;
+        warehouseDatalist.appendChild(option);
+    });
+});
+
+async function fetchStockLedger(reset=false){
+    if(reset){ cursor=null; previousCursors.length=0; }
+    const loader=document.getElementById("loader"); loader.classList.remove("hidden"); startTimer();
+
+    const tbody=document.getElementById("stockBody"); if(reset) tbody.innerHTML="";
+    const payload={
+        item_code: document.getElementById("item_code").value,
+        warehouse: document.getElementById("warehouse").value,
+        company: document.getElementById("company").value,
+        item_group: document.getElementById("item_group").value,
+        voucher_no: document.getElementById("voucher_no").value,
+        from_date: document.getElementById("from_date").value,
+        to_date: document.getElementById("to_date").value,
+        last_key: cursor,
+        page_size: 50
+    };
+
+    try{
+        const csrfToken=await getCsrfToken();
+        const resp=await fetch("/api/method/gormsolutions_mobile_app.custom_api.reports.stock_balance.get_stock_balances_cursor",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","X-Frappe-CSRF-Token":csrfToken},
+            body:JSON.stringify(payload),
+            credentials:"same-origin"
+        });
+        const result=await resp.json();
+        if(!result.message||!result.message.data){ document.getElementById("loaderText").textContent="No data found"; stopTimer(); setTimeout(()=>loader.classList.add("hidden"),1500); return; }
+
+        const data=result.message.data; cursor=result.message.next_cursor;
+        data.forEach((row,i)=>{
+            if(i===0){ stopTimer(); } // stop timer at first batch
+            const route=`/app/${encodeURIComponent(row.voucher_type.toLowerCase().replace(/ /g,"-"))}/${encodeURIComponent(row.voucher_no)}`;
+            const tr=document.createElement("tr"); tr.classList.add("border-b");
+            tr.innerHTML=`
+                <td class="px-2 py-1">${row.item_code}</td>
+                <td class="px-2 py-1">${row.item_name}</td>
+                <td class="px-2 py-1">${row.warehouse}</td>
+                <td class="px-2 py-1">${row.company}</td>
+                <td class="px-2 py-1">${row.qty_after_transaction}</td>
+                <td class="px-2 py-1">${row.valuation_rate}</td>
+                <td class="px-2 py-1"><a href="${route}" target="_blank">${row.voucher_no}</a></td>
+                <td class="px-2 py-1">${row.posting_date}</td>
+                <td class="px-2 py-1">${row.posting_time}</td>
+                <td class="px-2 py-1"><button onclick="window.open('${route}','_blank')" class="text-blue-500">View</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if(!reset&&cursor) previousCursors.push(cursor);
+        setTimeout(()=>loader.classList.add("hidden"),300); // hide loader
+    }catch(err){ console.error(err); stopTimer(); loader.classList.add("hidden"); alert("Error fetching data: "+err.message); }
+}
+
+// Event listeners
+document.getElementById("filterBtn").addEventListener("click",()=>fetchStockLedger(true));
+document.getElementById("nextPage").addEventListener("click",()=>{ if(cursor) fetchStockLedger(false); else alert("No more records"); });
+document.getElementById("prevPage").addEventListener("click",()=>{ if(previousCursors.length>0){ cursor=previousCursors.pop(); fetchStockLedger(false); } else alert("You are on the first page"); });
+document.getElementById("downloadBtn").addEventListener("click",()=>{
+    const table=document.getElementById("stockTable");
+    const rows=Array.from(table.querySelectorAll("tr")).map(tr=>Array.from(tr.querySelectorAll("th,td")).map(td=>td.innerText));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob([csv],{type:"text/csv"});
+    const link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download="stock_ledger.csv"; link.click();
+});
+document.getElementById("printBtn").addEventListener("click",()=>window.print());
+
+// Initial load
+loadFilters().then(()=>fetchStockLedger(true));
+</script>
+</body>
+</html>
