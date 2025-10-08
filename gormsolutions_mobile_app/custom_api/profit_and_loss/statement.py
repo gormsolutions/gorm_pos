@@ -178,86 +178,86 @@ from frappe.utils import flt
 import frappe
 from frappe.utils import flt
 
-@frappe.whitelist()
-def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
-    conditions = [
-        "gle.posting_date BETWEEN %(from_date)s AND %(to_date)s",
-        "gle.voucher_subtype != 'Internal Transfer'",
-        "gle.is_cancelled = 0"
-    ]
-    if cost_center:
-        conditions.append("gle.cost_center = %(cost_center)s")
-    if company:
-        conditions.append("gle.company = %(company)s")
+# @frappe.whitelist()
+# def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
+#     conditions = [
+#         "gle.posting_date BETWEEN %(from_date)s AND %(to_date)s",
+#         "gle.voucher_subtype != 'Internal Transfer'",
+#         "gle.is_cancelled = 0"
+#     ]
+#     if cost_center:
+#         conditions.append("gle.cost_center = %(cost_center)s")
+#     if company:
+#         conditions.append("gle.company = %(company)s")
 
-    where_clause = " AND ".join(conditions)
+#     where_clause = " AND ".join(conditions)
 
-    # ✅ JOIN Account to avoid per-row lookups
-    gl_entries = frappe.db.sql(f"""
-        SELECT
-            gle.name as voucher_number,
-            gle.voucher_no,
-            gle.posting_date,
-            gle.account,
-            gle.debit,
-            gle.credit,
-            gle.cost_center,
-            gle.against_voucher,
-            gle.against_voucher_type,
-            gle.party_type,
-            gle.party,
-            gle.voucher_subtype,
-            gle.company,
-            acc.parent_account,
-            acc.account_type,
-            acc.root_type
-        FROM `tabGL Entry` gle
-        LEFT JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE {where_clause}
-        ORDER BY gle.posting_date ASC
-    """, {
-        "from_date": from_date,
-        "to_date": to_date,
-        "cost_center": cost_center,
-        "company": company
-    }, as_dict=True)
+#     # ✅ JOIN Account to avoid per-row lookups
+#     gl_entries = frappe.db.sql(f"""
+#         SELECT
+#             gle.name as voucher_number,
+#             gle.voucher_no,
+#             gle.posting_date,
+#             gle.account,
+#             gle.debit,
+#             gle.credit,
+#             gle.cost_center,
+#             gle.against_voucher,
+#             gle.against_voucher_type,
+#             gle.party_type,
+#             gle.party,
+#             gle.voucher_subtype,
+#             gle.company,
+#             acc.parent_account,
+#             acc.account_type,
+#             acc.root_type
+#         FROM `tabGL Entry` gle
+#         LEFT JOIN `tabAccount` acc ON gle.account = acc.name
+#         WHERE {where_clause}
+#         ORDER BY gle.posting_date ASC
+#     """, {
+#         "from_date": from_date,
+#         "to_date": to_date,
+#         "cost_center": cost_center,
+#         "company": company
+#     }, as_dict=True)
 
-    grouped_data = {
-        "Expenses": {"total": 0.0, "entries": []},
-        "Invoices": {"total": 0.0, "entries": []},
-        "Other": {"total": 0.0, "entries": []}
-    }
+#     grouped_data = {
+#         "Expenses": {"total": 0.0, "entries": []},
+#         "Invoices": {"total": 0.0, "entries": []},
+#         "Other": {"total": 0.0, "entries": []}
+#     }
 
-    for entry in gl_entries:
-        if not entry["account"]:
-            continue
+#     for entry in gl_entries:
+#         if not entry["account"]:
+#             continue
 
-        # ✅ Exclude "4100 - Direct Income - CCML" only for CRAVE CITY MEGA LIMITED
-        if (
-            entry.get("company") == "CRAVE CITY MEGA LIMITED"
-            and entry.get("parent_account") == "4100 - Direct Income - CCML"
-        ):
-            continue
+#         # ✅ Exclude "4100 - Direct Income - CCML" only for CRAVE CITY MEGA LIMITED
+#         if (
+#             entry.get("company") == "CRAVE CITY MEGA LIMITED"
+#             and entry.get("parent_account") == "4100 - Direct Income - CCML"
+#         ):
+#             continue
 
-        # Only process if root_type is either 'Income' or 'Expense'
-        if entry.get("root_type") not in ["Income", "Expense"]:
-            continue
+#         # Only process if root_type is either 'Income' or 'Expense'
+#         if entry.get("root_type") not in ["Income", "Expense"]:
+#             continue
 
-        debit_amount = flt(entry.get("debit", 0))
-        credit_amount = flt(entry.get("credit", 0))
-        amount = debit_amount - credit_amount
+#         debit_amount = flt(entry.get("debit", 0))
+#         credit_amount = flt(entry.get("credit", 0))
+#         amount = debit_amount - credit_amount
 
-        if entry.get("root_type") == "Expense":
-            grouped_data["Expenses"]["total"] += amount
-            grouped_data["Expenses"]["entries"].append(entry)
-        elif any(x in (entry.get("account_type") or "") for x in ["Income Account", "Bank", "Cash"]):
-            grouped_data["Invoices"]["total"] += amount
-            grouped_data["Invoices"]["entries"].append(entry)
-        else:
-            grouped_data["Other"]["total"] += amount
-            grouped_data["Other"]["entries"].append(entry)
+#         if entry.get("root_type") == "Expense":
+#             grouped_data["Expenses"]["total"] += amount
+#             grouped_data["Expenses"]["entries"].append(entry)
+#         elif any(x in (entry.get("account_type") or "") for x in ["Income Account", "Bank", "Cash"]):
+#             grouped_data["Invoices"]["total"] += amount
+#             grouped_data["Invoices"]["entries"].append(entry)
+#         else:
+#             grouped_data["Other"]["total"] += amount
+#             grouped_data["Other"]["entries"].append(entry)
 
-    return {"grouped_data": grouped_data}
+#     return {"grouped_data": grouped_data}
 
 import frappe
 from frappe.utils import flt
@@ -354,3 +354,87 @@ def get_gross_profit_grouped(from_date, to_date, company=None, cost_center=None,
         g["total_gross_profit_percent"] = (g["total_gross_profit"] / g["total_selling"] * 100) if g["total_selling"] else 0.0
 
     return list(grouped.values())
+
+@frappe.whitelist()
+def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=None):
+    conditions = [
+        "gle.posting_date BETWEEN %(from_date)s AND %(to_date)s",
+        "gle.voucher_subtype != 'Internal Transfer'",
+        "gle.is_cancelled = 0"
+    ]
+    if cost_center:
+        conditions.append("gle.cost_center = %(cost_center)s")
+    if company:
+        conditions.append("gle.company = %(company)s")
+
+    where_clause = " AND ".join(conditions)
+
+    gl_entries = frappe.db.sql(f"""
+        SELECT
+            gle.name as voucher_number,
+            gle.voucher_no,
+            gle.posting_date,
+            gle.account,
+            gle.debit,
+            gle.credit,
+            gle.cost_center,
+            gle.against_voucher,
+            gle.against_voucher_type,
+            gle.party_type,
+            gle.party,
+            gle.voucher_subtype,
+            gle.company,
+            acc.parent_account,
+            acc.account_type,
+            acc.root_type
+        FROM `tabGL Entry` gle
+        LEFT JOIN `tabAccount` acc ON gle.account = acc.name
+        WHERE {where_clause}
+        ORDER BY gle.posting_date ASC
+    """, {
+        "from_date": from_date,
+        "to_date": to_date,
+        "cost_center": cost_center,
+        "company": company
+    }, as_dict=True)
+
+    grouped_data = {
+        "Expenses": {"total": 0.0, "entries": []},
+        "Invoices": {"total": 0.0, "entries": []},
+        "Other": {"total": 0.0, "entries": []}
+    }
+
+    for entry in gl_entries:
+        if not entry["account"]:
+            continue
+
+        # Exclude specific account for CRAVE CITY MEGA LIMITED
+        if entry.get("company") == "CRAVE CITY MEGA LIMITED" and entry.get("parent_account") == "4100 - Direct Income - CCML":
+            continue
+
+        if entry.get("root_type") not in ["Income", "Expense"]:
+            continue
+
+        debit_amount = flt(entry.get("debit", 0))
+        credit_amount = flt(entry.get("credit", 0))
+        amount = debit_amount - credit_amount
+
+        # Expense
+        if entry.get("root_type") == "Expense":
+            grouped_data["Expenses"]["total"] += amount
+            grouped_data["Expenses"]["entries"].append(entry)
+
+        # Invoices
+        elif (
+            (entry.get("account_type") in ["Income Account", "Bank", "Cash"] and entry.get("root_type") != "Expense")
+            or (not entry.get("account_type") and entry.get("root_type") == "Income")
+        ):
+            grouped_data["Invoices"]["total"] += amount
+            grouped_data["Invoices"]["entries"].append(entry)
+
+        # Other
+        else:
+            grouped_data["Other"]["total"] += amount
+            grouped_data["Other"]["entries"].append(entry)
+
+    return {"grouped_data": grouped_data}

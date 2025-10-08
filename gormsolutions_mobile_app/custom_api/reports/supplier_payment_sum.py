@@ -1,12 +1,13 @@
 import frappe
-from frappe.utils import flt
+from frappe.utils import flt, today, getdate
+from datetime import timedelta
 
 @frappe.whitelist()
-def get_supplier_payment_details(from_date=None, to_date=None, company=None, cost_center=None, supplier=None):
+def get_supplier_payment_details(from_date=None, to_date=None, company=None, cost_center=None, supplier=None, period=None):
     """
     Return detailed report of supplier transactions (invoices + payments).
-    Filters by company, cost center, supplier, and date range.
-    
+    Filters by company, cost center, supplier, date range, and period (Daily/Weekly/Monthly).
+
     Each row contains:
         posting_date, voucher_type, voucher_no, supplier, supplier_name,
         company, cost_center, debit (invoices), credit (payments).
@@ -33,6 +34,22 @@ def get_supplier_payment_details(from_date=None, to_date=None, company=None, cos
     if to_date:
         conditions += " AND gle.posting_date <= %(to_date)s"
         values["to_date"] = to_date
+
+    # Add period-based filtering
+    if period:
+        today_date = getdate(today())
+        if period.lower() == "daily":
+            conditions += " AND gle.posting_date = %(today)s"
+            values["today"] = today_date
+        elif period.lower() == "weekly":
+            # Only include rows from the start of the current week
+            start_week = today_date - timedelta(days=today_date.weekday())  # Monday
+            conditions += " AND gle.posting_date >= %(start_week)s"
+            values["start_week"] = start_week
+        elif period.lower() == "monthly":
+            start_month = today_date.replace(day=1)
+            conditions += " AND gle.posting_date >= %(start_month)s"
+            values["start_month"] = start_month
 
     query = f"""
         SELECT

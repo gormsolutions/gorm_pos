@@ -36,13 +36,19 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
             label: __('To Date'),
             fieldtype: 'Date',
             default: frappe.datetime.get_today()
+        }),
+        period: page.add_field({
+            label: __('Period'),
+            fieldtype: 'Select',
+            options: ['', 'Daily', 'Weekly', 'Monthly'],  // "" means no restriction
+            default: ''
         })
     };
 
     Object.values(filters).forEach(f => f.$input.on('change', () => get_data()));
 
-    // container for table
     const $container = $('<div></div>').appendTo(page.body);
+    const $buttons = $('<div class="mb-2"></div>').prependTo(page.body);
 
     function get_filters() {
         return {
@@ -50,7 +56,8 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
             cost_center: filters.cost_center.get_value(),
             supplier: filters.supplier.get_value(),
             from_date: filters.from_date.get_value(),
-            to_date: filters.to_date.get_value()
+            to_date: filters.to_date.get_value(),
+            period: filters.period.get_value() || null   // send only if chosen
         };
     }
 
@@ -59,7 +66,7 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
     }
 
     function get_data() {
-        if (!filters.company.get_value()) return; // company is mandatory
+        if (!filters.company.get_value()) return;
         frappe.call({
             method: "gormsolutions_mobile_app.custom_api.reports.supplier_payment_sum.get_supplier_payment_details",
             args: get_filters(),
@@ -74,8 +81,16 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
     }
 
     function render_table(data) {
+        let total_invoice = 0;
+        let total_payment = 0;
+
+        const company_name = filters.company.get_value() || "All Companies";
+        const from_date = filters.from_date.get_value() || "";
+        const to_date = filters.to_date.get_value() || "";
+        const period = filters.period.get_value();
+
         let html = `
-            <table class="table table-bordered table-hover">
+            <table class="table table-bordered table-hover" id="supplier-payment-table">
                 <thead>
                     <tr>
                         <th>${__('Posting Date')}</th>
@@ -92,9 +107,18 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
                 <tbody>
         `;
 
+        function getVoucherURL(voucher_type, voucher_no){
+            const base_url = frappe.urllib.get_base_url();
+            const url_type = voucher_type.toLowerCase().replace(/\s+/g,'-');
+            return `${base_url}/app/${url_type}/${voucher_no}`;
+        }
+
         data.forEach(row => {
+            total_invoice += flt(row.invoice_amount);
+            total_payment += flt(row.payment_amount);
+
             const voucher_link = row.voucher_no
-                ? `<a href="#Form/${encodeURIComponent(row.voucher_type)}/${encodeURIComponent(row.voucher_no)}">${row.voucher_no}</a>`
+                ? `<a href="${getVoucherURL(row.voucher_type,row.voucher_no)}" target="_blank">${row.voucher_no}</a>`
                 : "";
 
             html += `
@@ -112,12 +136,68 @@ frappe.pages['supplier-payment-sum'].on_page_load = function(wrapper) {
             `;
         });
 
-        html += "</tbody></table>";
+        html += `
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="7" class="text-right">${__('Total')}</th>
+                        <th class="text-right">${format_currency(total_invoice)}</th>
+                        <th class="text-right">${format_currency(total_payment)}</th>
+                    </tr>
+                </tfoot>
+            </table>`;
+
         $container.html(html);
+
+        $buttons.html(`
+            <button class="btn btn-primary btn-sm mr-2" id="print-report">${__('Print')}</button>
+            <button class="btn btn-secondary btn-sm" id="download-excel">${__('Download Excel')}</button>
+        `);
+
+        // Print
+        $('#print-report').on('click', () => {
+            const heading = `<h3>${__('Supplier Payment Details for')} ${company_name} (${from_date} → ${to_date}) - ${period}</h3>`;
+            let w = window.open();
+            w.document.write(`<html><head><title>Supplier Payment Details - ${company_name}</title></head><body>${heading}${$container.html()}</body></html>`);
+            w.document.close();
+            w.print();
+        });
+
+        // Download Excel/CSV
+        $('#download-excel').on('click', () => {
+            let csv = [];
+            const heading = `Supplier Payment Details for ${company_name} (${from_date} → ${to_date}) - ${period}`;
+            csv.push([heading].join(","));
+            csv.push([]); // blank line
+            let headers = ["Posting Date","Voucher Type","Voucher No","Supplier","Full Name","Company","Cost Center","Invoice Amount (Debit)","Payment Amount (Credit)"];
+            csv.push(headers.join(","));
+
+            data.forEach(d => {
+                csv.push([
+                    d.posting_date || "",
+                    d.voucher_type || "",
+                    d.voucher_no || "",
+                    d.supplier || "",
+                    d.supplier_name || "",
+                    d.company || "",
+                    d.cost_center || "",
+                    d.invoice_amount || 0,
+                    d.payment_amount || 0
+                ].join(","));
+            });
+
+            csv.push([]); // blank line before totals
+            csv.push(["", "", "", "", "", "", "Total", total_invoice, total_payment].join(","));
+
+            const blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Supplier_Payment_${company_name.replace(/ /g, "_")}_${from_date}_to_${to_date}_${period}.csv`;
+            link.click();
+        });
     }
 
     page.set_primary_action(__("Refresh"), get_data);
 
-    // first load
     get_data();
 };

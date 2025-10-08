@@ -113,6 +113,7 @@ const $controls = $(`
                 limit_page_length: page_size
             },
             callback: function(r) {
+                console.log(r);
                 $('#load-more').prop('disabled', false);
                 $('#loading-indicator').hide();
 

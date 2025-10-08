@@ -12,8 +12,6 @@ frappe.ui.form.on('User Financial Report', {
                 callback: function (r) {
                     if (r.message) {
                         const { data, totals } = r.message;
-
-                        // Currency formatting helper
                         const formatCurrency = (value) => frappe.format(value, { fieldtype: 'Currency' });
 
                         let report_html = `
@@ -25,60 +23,52 @@ frappe.ui.form.on('User Financial Report', {
                             </center>
                         `;
 
-                        // Generate accounts summary table
+                        // Accounts summary
                         const generateAccountsSummaryTable = (accounts_summary) => {
                             if (!accounts_summary || Object.keys(accounts_summary).length === 0) {
                                 return `<p>No accounts summary available.</p>`;
                             }
-
                             let table_html = `
                                 <h4>Accounts Summary</h4>
                                 <table class="table table-bordered" style="width:100%; border-collapse: collapse;">
                                     <thead><tr><th>Account</th><th>Amount</th></tr></thead>
                                     <tbody>
                             `;
-
                             Object.keys(accounts_summary).forEach(account => {
                                 const amount = accounts_summary[account];
                                 table_html += `<tr><td>${account}</td><td>${formatCurrency(amount)}</td></tr>`;
                             });
-
                             table_html += `</tbody></table>`;
                             return table_html;
                         };
-
                         report_html += generateAccountsSummaryTable(data.accounts_summary);
 
-                        // Generate expense summary table
+                        // Expense summary
                         const generateExpenseSummaryTable = (expense_summary) => {
                             if (!expense_summary || Object.keys(expense_summary).length === 0) {
                                 return `<p>No Expense summary available.</p>`;
                             }
-
                             let table_html = `
                                 <h4>Expense Summary</h4>
                                 <table class="table table-bordered" style="width:100%; border-collapse: collapse;">
                                     <thead><tr><th>Account</th><th>Amount</th></tr></thead>
                                     <tbody>
                             `;
-
                             Object.keys(expense_summary).forEach(account => {
                                 const amount = expense_summary[account];
                                 table_html += `<tr><td>${account}</td><td>${formatCurrency(amount)}</td></tr>`;
                             });
-
                             table_html += `</tbody></table>`;
                             return table_html;
                         };
-
                         report_html += generateExpenseSummaryTable(data.expense_summary);
 
-                        // Dynamic table section generator
+                        // Dynamic table section generator with counts and clickable invoice links
                         const generateTableSection = (title, records, columns) => {
                             if (!records.length) return `<p>No ${title}.</p>`;
 
                             let table_html = `
-                                <h4>${title}</h4>
+                                <h4>${title} (Total: ${records.length})</h4>
                                 <table class="table table-bordered" style="width:100%; border-collapse: collapse;">
                                     <thead><tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>
                                     <tbody>
@@ -89,8 +79,14 @@ frappe.ui.form.on('User Financial Report', {
                                     let key = c.toLowerCase().replace(/ /g, '_');
                                     let val = rec[key];
 
-                                    if (typeof val === 'number') val = formatCurrency(val);
-                                    if (c === 'Posting Time' && typeof val === 'string') val = val.substring(0, 8);
+                                    // Make invoice 'name' clickable
+                                    if ((title === "Sales Invoices" || title === "Purchase Invoices") && key === "name" && val) {
+                                        val = `<a href="https://erp.divacakes.com.ng/app/${title === "Sales Invoices" ? "sales-invoice" : "purchase-invoice"}/${encodeURIComponent(val)}" target="_blank">${val}</a>`;
+                                    } else if (typeof val === 'number') {
+                                        val = formatCurrency(val);
+                                    } else if (c === 'Posting Time' && typeof val === 'string') {
+                                        val = val.substring(0, 8);
+                                    }
 
                                     return `<td>${val || ''}</td>`;
                                 }).join('')}</tr>`;
@@ -100,7 +96,7 @@ frappe.ui.form.on('User Financial Report', {
                             return table_html;
                         };
 
-                        // Calculate total expenses
+                        // Total expenses calculation
                         let totalExpenses = 0;
                         if (data.expense_summary && Object.keys(data.expense_summary).length > 0) {
                             Object.values(data.expense_summary).forEach(amount => {
@@ -108,20 +104,14 @@ frappe.ui.form.on('User Financial Report', {
                             });
                         }
 
-                        // Section tables
+                        // Add all sections
                         report_html += generateTableSection("Received Payments", data.received_payments, ['Party', 'Paid Amount', 'Posting Date']);
                         report_html += generateTableSection("Paid Payments", data.paid_payments, ['Party', 'Paid Amount', 'Posting Date']);
                         report_html += generateTableSection("Internal Transfers", data.internal_transfers, ['Name', 'Amount', 'Posting Date']);
-                        report_html += generateTableSection("Sales Invoices", data.sales_invoices, ['Customer', 'Grand Total', 'Outstanding Amount', 'Collected Amount', 'Posting Time']);
-                        report_html += generateTableSection("Purchase Invoices", data.purchase_invoices, ['Supplier', 'Grand Total', 'Outstanding Amount', 'Paid Value', 'Posting Date']);
+                        report_html += generateTableSection("Sales Invoices", data.sales_invoices, ['Customer', 'name','Grand Total', 'Outstanding Amount', 'Collected Amount', 'Posting Time']);
+                        report_html += generateTableSection("Purchase Invoices", data.purchase_invoices, ['Supplier', 'name', 'Grand Total', 'Outstanding Amount', 'Paid Value', 'Posting Date']);
 
-                        // Financial Totals section
-                        report_html += `
-                            <h4>Financial Totals</h4>
-                            <table class="table table-bordered" style="width:100%; border-collapse: collapse;">
-                            <tbody>
-                        `;
-
+                        // Financial totals
                         const totalFields = [
                             { label: 'Total Sales Amount', value: totals.total_sales_amount || 0 },
                             { label: 'Total Outstanding Sales', value: totals.total_sales_outstanding || 0 },
@@ -131,36 +121,26 @@ frappe.ui.form.on('User Financial Report', {
                             { label: 'Total Internal Transfer Amount', value: totals.total_internal_transfer_amount || 0 },
                             { label: 'Total Purchase Amount', value: totals.total_purchase_amount || 0 },
                             { label: 'Total Paid PINV(POS) Amount', value: totals.total_paid_purchase_amount || 0 },
-                            { label: 'Total  Direct Payments to Suppliers', value: totals.total_paid_amount_to_suppliers || 0 },
+                            { label: 'Total Direct Payments to Suppliers', value: totals.total_paid_amount_to_suppliers || 0 },
                             { label: 'PINV(POS) + Direct Payments', value: totals.grand_paid_purchase_amount || 0 },
                             { label: 'Total Expenses', value: totalExpenses || 0 }
                         ];
 
                         let hasTotals = false;
+                        report_html += `<h4>Financial Totals</h4><table class="table table-bordered" style="width:100%; border-collapse: collapse;"><tbody>`;
                         totalFields.forEach(item => {
                             if (item.value && item.value !== 0) {
                                 hasTotals = true;
-                                report_html += `<tr><td>${item.label}</td><td><div style="text-align: right">${formatCurrency(item.value)}</div></td></tr>`;
+                                report_html += `<tr><td>${item.label}</td><td style="text-align: right">${formatCurrency(item.value)}</td></tr>`;
                             }
                         });
-
-                        if (!hasTotals) {
-                            report_html += `<tr><td colspan="2">No financial totals available.</td></tr>`;
-                        }
-
+                        if (!hasTotals) report_html += `<tr><td colspan="2">No financial totals available.</td></tr>`;
                         report_html += `</tbody></table>`;
 
-                        // Show dialog with report and print option
+                        // Show modal with report
                         const report_modal = new frappe.ui.Dialog({
                             title: __('Financial Report'),
-                            fields: [
-                                {
-                                    fieldtype: 'HTML',
-                                    label: __('Report Content'),
-                                    fieldname: 'report_content',
-                                    options: report_html
-                                }
-                            ],
+                            fields: [{ fieldtype: 'HTML', label: __('Report Content'), fieldname: 'report_content', options: report_html }],
                             size: 'extra-large',
                             primary_action_label: 'Print Report',
                             primary_action: () => {
@@ -182,7 +162,6 @@ frappe.ui.form.on('User Financial Report', {
                                 printWindow.print();
                             }
                         });
-
                         report_modal.show();
                     }
                 }
