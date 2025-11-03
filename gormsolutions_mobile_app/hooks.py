@@ -133,6 +133,11 @@ app_license = "mit"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+# hooks.py
+override_whitelisted_methods = {
+    "frappe.desk.reportview.delete_items": "gormsolutions_mobile_app.custom_api.restrictions.restrict_deleted_docs.prevent_bulk_delete"
+}
+
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -142,16 +147,22 @@ doc_events = {
 	# 	"on_update": "method",
 	# 	"on_cancel": "method",
 	# 	"on_trash": "method" apps//gormsolutions_mobile_app/custom_api/stock/stock_transfer_setting.py
-	# }
+	# }apps/gormsolutions_mobile_app//custom_api//.py
+    "Deleted Document": {
+        "on_trash": "gormsolutions_mobile_app.custom_api.restrictions.restrict_deleted_docs.prevent_delete"
+    },
+
 	"Sales Invoice": {
 		"autoname": "gormsolutions_mobile_app.custom_api.sales_invoice.document_series.custom_autoname",
         "before_save": "gormsolutions_mobile_app.custom_api.promotion.birthday_bonus.add_special_day_free_items",
     "on_submit": [
         "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.create_delivery_fee_journal_entry",
         "gormsolutions_mobile_app.custom_api.promotion.double_points.double_loyalty_points_on_submit",
-        "gormsolutions_mobile_app.custom_api.promotion.birthday_bonus.apply_special_day_loyalty_points"
+        "gormsolutions_mobile_app.custom_api.promotion.birthday_bonus.apply_special_day_loyalty_points",
+        # "gormsolutions_mobile_app.custom_api.doc_events.discount_journal_entry.create_discount_journal_entry"
     ],
     "on_update": "gormsolutions_mobile_app.custom_api.promotion.apply_delivery_fee_discount.apply_delivery_fee_discount",
+    "on_trash": "gormsolutions_mobile_app.custom_api.restrictions.restrict_deleted_docs.prevent_delete"
   		# "on_submit": "gormsolutions_mobile_app.custom_api.promotion.double_points.double_loyalty_points_on_submit",
 	},
 

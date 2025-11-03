@@ -105,7 +105,7 @@ frappe.ui.form.on('User Financial Report', {
                         }
 
                         // Add all sections
-                        report_html += generateTableSection("Received Payments", data.received_payments, ['Party', 'Paid Amount', 'Posting Date']);
+                        report_html += generateTableSection("Advance Payment Received", data.received_payments, ['Party', 'Paid Amount', 'Posting Date']);
                         report_html += generateTableSection("Paid Payments", data.paid_payments, ['Party', 'Paid Amount', 'Posting Date']);
                         report_html += generateTableSection("Internal Transfers", data.internal_transfers, ['Name', 'Amount', 'Posting Date']);
                         report_html += generateTableSection("Sales Invoices", data.sales_invoices, ['Customer', 'name','Grand Total', 'Outstanding Amount', 'Collected Amount', 'Posting Time']);
@@ -115,8 +115,9 @@ frappe.ui.form.on('User Financial Report', {
                         const totalFields = [
                             { label: 'Total Sales Amount', value: totals.total_sales_amount || 0 },
                             { label: 'Total Outstanding Sales', value: totals.total_sales_outstanding || 0 },
-                            { label: 'Total Received Payments', value: totals.total_received_payments || 0 },
+                            { label: 'Total Advance Payments Received', value: totals.total_received_payments || 0 },
                             { label: 'Total Collected Sales', value: totals.total_collected_sales_amount || 0 },
+                            { label: 'Less : Total Amount Loyalty Points Redeemed', value: totals.total_loyalty_amount || 0 },
                             { label: 'Received + Collected Sales (POS)', value: totals.grand_received_amount || 0 },
                             { label: 'Total Internal Transfer Amount', value: totals.total_internal_transfer_amount || 0 },
                             { label: 'Total Purchase Amount', value: totals.total_purchase_amount || 0 },

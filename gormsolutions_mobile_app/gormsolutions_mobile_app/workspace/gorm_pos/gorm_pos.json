@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"1o2lC_r2EZ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"N17MiMEjJs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"AN2sNc5HG9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}},{\"id\":\"cqmCWI9SEY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OTP CODES\",\"col\":3}},{\"id\":\"pRhMHDLBcg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"thlPfxapMc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Double Points Day\",\"col\":3}},{\"id\":\"AVXVoQZU2d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Account Number Update\",\"col\":3}},{\"id\":\"rh6_0cMDLG\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Delivery Fee Discount\",\"col\":3}},{\"id\":\"gTc71-9fA1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"5UmE-ZYfvC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Birthday/Anniversary Settings\",\"col\":3}},{\"id\":\"EP0IOF7n3K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>GORM POS PRINT FORMAT</b></span>\",\"col\":12}},{\"id\":\"N40FwJrWot\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Print Setting\",\"col\":3}},{\"id\":\"vB6GqwsTm8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Transfer Setting\",\"col\":3}},{\"id\":\"St8qV5pRRs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Missing Depreciation Schedule\",\"col\":3}},{\"id\":\"h-ABdzwCJ_\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Database and frappe server Disk Monitoring\",\"col\":3}},{\"id\":\"ip0lJhsdRU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assets Without Depreciation Schedule Report\",\"col\":3}},{\"id\":\"dnF76bYDan\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Export\",\"col\":3}},{\"id\":\"q4SVQRMzyE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Download stock balances\",\"col\":3}},{\"id\":\"z7MwFJT4rc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Employee Shortage Report\",\"col\":3}},{\"id\":\"hc1KFiEv2w\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Transfer Report\",\"col\":3}},{\"id\":\"S_bYTD9gNP\",\"type\":\"header\",\"data\":{\"text\":\"<br><span class=\\\"h4\\\"><b></b></span>\",\"col\":12}},{\"id\":\"9nb1jzu7yp\",\"type\":\"card\",\"data\":{\"card_name\":\"Report\",\"col\":4}},{\"id\":\"WjcU8GYN7N\",\"type\":\"card\",\"data\":{\"card_name\":\"Transaction\",\"col\":4}},{\"id\":\"X3jnjUS5-C\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Self Services\",\"col\":4}},{\"id\":\"6qgRQx1Syb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactional Report</b></span>\",\"col\":12}},{\"id\":\"WdZFoY9Rvw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Items Sold\",\"col\":3}},{\"id\":\"FDS2qqNylT\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item Wise Sales History\",\"col\":3}},{\"id\":\"2PThzLKGV2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item-wise Sales Register\",\"col\":3}},{\"id\":\"FxcJClApiP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales by FLAVOUR and Outlet\",\"col\":3}},{\"id\":\"ICX59BAl5R\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Register\",\"col\":3}},{\"id\":\"YEMbSZ9TBJ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balance Report\",\"col\":3}},{\"id\":\"k4SCgbTE38\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Analytics\",\"col\":3}},{\"id\":\"nsY0eyXNVB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Daily Sales Funds\",\"col\":3}},{\"id\":\"zn9r-D5sx_\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales by Variant Report\",\"col\":3}},{\"id\":\"Fi3V879m1x\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Ledger Report\",\"col\":3}},{\"id\":\"2gnd_9UZaY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Revenue & Txn By Outlet\",\"col\":3}},{\"id\":\"PxT8AAWltk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Revenue By Outlet\",\"col\":3}},{\"id\":\"kxXOw8nvk8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Supplier Payment Summary\",\"col\":3}},{\"id\":\"dAeLvqn5-G\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Payment Summary\",\"col\":3}},{\"id\":\"NFBBKI3VEu\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice Payment Report\",\"col\":3}}]",
+ "content": "[{\"id\":\"A8w_pa96WK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">GORM POS</span>\",\"col\":12}},{\"id\":\"GUrlgq4x-F\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Opening Entry\",\"col\":3}},{\"id\":\"bXfBwG5uz3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Return Management\",\"col\":3}},{\"id\":\"RJ7lxdbQZh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transaction Accounts\",\"col\":3}},{\"id\":\"1o2lC_r2EZ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pos Closing Shift\",\"col\":3}},{\"id\":\"N17MiMEjJs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Expenses\",\"col\":3}},{\"id\":\"AN2sNc5HG9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Loyalty Program\",\"col\":3}},{\"id\":\"cqmCWI9SEY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OTP CODES\",\"col\":3}},{\"id\":\"pRhMHDLBcg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"User Financial Report\",\"col\":3}},{\"id\":\"thlPfxapMc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Double Points Day\",\"col\":3}},{\"id\":\"AVXVoQZU2d\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Account Number Update\",\"col\":3}},{\"id\":\"rh6_0cMDLG\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Delivery Fee Discount\",\"col\":3}},{\"id\":\"gTc71-9fA1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"5UmE-ZYfvC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Birthday/Anniversary Settings\",\"col\":3}},{\"id\":\"EP0IOF7n3K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>GORM POS PRINT FORMAT</b></span>\",\"col\":12}},{\"id\":\"N40FwJrWot\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Branch Print Setting\",\"col\":3}},{\"id\":\"vB6GqwsTm8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Transfer Setting\",\"col\":3}},{\"id\":\"St8qV5pRRs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Missing Depreciation Schedule\",\"col\":3}},{\"id\":\"h-ABdzwCJ_\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Database and frappe server Disk Monitoring\",\"col\":3}},{\"id\":\"ip0lJhsdRU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assets Without Depreciation Schedule Report\",\"col\":3}},{\"id\":\"dnF76bYDan\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Export\",\"col\":3}},{\"id\":\"q4SVQRMzyE\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Download stock balances\",\"col\":3}},{\"id\":\"z7MwFJT4rc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Employee Shortage Report\",\"col\":3}},{\"id\":\"hc1KFiEv2w\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Transfer Report\",\"col\":3}},{\"id\":\"qrtkxRNJ3w\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Target\",\"col\":3}},{\"id\":\"S_bYTD9gNP\",\"type\":\"header\",\"data\":{\"text\":\"<br><span class=\\\"h4\\\"><b></b></span>\",\"col\":12}},{\"id\":\"9nb1jzu7yp\",\"type\":\"card\",\"data\":{\"card_name\":\"Report\",\"col\":4}},{\"id\":\"WjcU8GYN7N\",\"type\":\"card\",\"data\":{\"card_name\":\"Transaction\",\"col\":4}},{\"id\":\"X3jnjUS5-C\",\"type\":\"card\",\"data\":{\"card_name\":\"Employee Self Services\",\"col\":4}},{\"id\":\"6qgRQx1Syb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Transactional Report</b></span>\",\"col\":12}},{\"id\":\"WdZFoY9Rvw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Items Sold\",\"col\":3}},{\"id\":\"FDS2qqNylT\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item Wise Sales History\",\"col\":3}},{\"id\":\"2PThzLKGV2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item-wise Sales Register\",\"col\":3}},{\"id\":\"FxcJClApiP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales by FLAVOUR and Outlet\",\"col\":3}},{\"id\":\"ICX59BAl5R\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Register\",\"col\":3}},{\"id\":\"YEMbSZ9TBJ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balance Report\",\"col\":3}},{\"id\":\"k4SCgbTE38\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Analytics\",\"col\":3}},{\"id\":\"nsY0eyXNVB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Daily Sales Funds\",\"col\":3}},{\"id\":\"zn9r-D5sx_\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales by Variant Report\",\"col\":3}},{\"id\":\"Fi3V879m1x\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Ledger Report\",\"col\":3}},{\"id\":\"2gnd_9UZaY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Revenue & Txn By Outlet\",\"col\":3}},{\"id\":\"PxT8AAWltk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Revenue By Outlet\",\"col\":3}},{\"id\":\"kxXOw8nvk8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Supplier Payment Summary\",\"col\":3}},{\"id\":\"6BwaqNDbZC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Expenses by Cost Center\",\"col\":3}},{\"id\":\"dAeLvqn5-G\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Payment Summary\",\"col\":3}},{\"id\":\"NFBBKI3VEu\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice Payment Report\",\"col\":3}},{\"id\":\"yyMe3vwJ5i\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Product Cost and Margin Report\",\"col\":3}},{\"id\":\"fSLqpBO2uw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales report spool out\",\"col\":3}},{\"id\":\"K7bwjVt51i\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Revenue vs Target\",\"col\":3}},{\"id\":\"lD1CXcjUSk\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Budget vs Actual Expenses\",\"col\":3}},{\"id\":\"hokRQsaPFq\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Payable\",\"col\":3}},{\"id\":\"snziV2KzgD\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Payable Summary\",\"col\":3}},{\"id\":\"orZ-AGeIZc\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"YoY & MoM Revenue Trends\",\"col\":3}}]",
  "creation": "2025-05-08 21:16:40.449436",
  "custom_blocks": [],
  "docstatus": 0,
@@ -135,10 +135,9 @@
    "is_query_report": 0,
    "label": "Daily Sales Funds",
    "link_count": 0,
-   "link_to": "Daily Sales Funds",
-   "link_type": "Report",
+   "link_to": "daily-sales-funds",
+   "link_type": "Page",
    "onboard": 0,
-   "report_ref_doctype": "GL Entry",
    "type": "Link"
   },
   {
@@ -162,7 +161,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-09-30 14:04:41.376940",
+ "modified": "2025-11-01 02:27:09.250664",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "GORM POS",
@@ -221,6 +220,13 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Budget vs Actual Expenses",
+   "link_to": "budget-vs-actual-exp",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Sales by Variant Report",
    "link_to": "sales-by-variant",
    "type": "Page"
@@ -228,8 +234,23 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Sales Target",
+   "link_to": "Sales Target",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Item-wise Sales Register",
    "link_to": "item-wise-sales-regi",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Product Cost and Margin Report",
+   "link_to": "product-cost-and-mar",
    "type": "Page"
   },
   {
@@ -303,8 +324,30 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Accounts Payable",
+   "link_to": "Accounts Payable",
+   "report_ref_doctype": "Purchase Invoice",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Sales by FLAVOUR and Outlet",
    "link_to": "flavour-wise-sales",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Revenue vs Target",
+   "link_to": "revenue-vs-target",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Sales report spool out",
+   "link_to": "sales-report",
    "type": "Page"
   },
   {
@@ -313,6 +356,13 @@
    "label": "Database and frappe server Disk Monitoring",
    "type": "URL",
    "url": "https://erp.divacakes.com.ng/app/server-monitor"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "YoY & MoM Revenue Trends",
+   "link_to": "revenue-trends",
+   "type": "Page"
   },
   {
    "color": "Grey",
@@ -379,6 +429,13 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Expenses by Cost Center",
+   "link_to": "expense-report",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Stock Transfer Setting",
    "link_to": "Stock Transfer Setting",
    "stats_filter": "[]",
@@ -399,6 +456,14 @@
    "link_to": "GL Export",
    "stats_filter": "[]",
    "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Accounts Payable Summary",
+   "link_to": "Accounts Payable Summary",
+   "report_ref_doctype": "Purchase Invoice",
+   "type": "Report"
   },
   {
    "color": "Grey",

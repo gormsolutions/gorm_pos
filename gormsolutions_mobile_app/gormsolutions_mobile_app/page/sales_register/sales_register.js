@@ -139,36 +139,32 @@ frappe.pages['sales-register'].on_page_load = function (wrapper) {
 
 	// --- Totals Function ---
 	function calculate_totals() {
-		let total_grand = 0, total_paid = 0, total_outstanding = 0;
-		$('#sales-register-body tr').each(function () {
-			total_grand += parseFloat($(this).find('td').eq(8).text().replace(/,/g, '')) || 0;
-			total_paid += parseFloat($(this).find('td').eq(9).text().replace(/,/g, '')) || 0;
-			total_outstanding += parseFloat($(this).find('td').eq(10).text().replace(/,/g, '')) || 0;
-		});
-		$('#total-grand').text(total_grand.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
-		$('#total-paid').text(total_paid.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
-		$('#total-outstanding').text(total_outstanding.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
-	}
+    let invoice_seen = {}; // keep track of invoices already counted
+    let total_grand = 0, total_paid = 0, total_outstanding = 0;
 
-	$('#calculate-totals').on('click', calculate_totals);
+    $('#sales-register-body tr').each(function () {
+        let invoice = $(this).find('td').eq(0).text().trim();
+        if (!invoice) return;
 
-	// --- Export to Excel ---
-	$('#export-excel').on('click', function () {
-		function export_excel() {
-			let wb = XLSX.utils.book_new();
-			let ws = XLSX.utils.table_to_sheet($table[0]);
-			XLSX.utils.book_append_sheet(wb, ws, "Sales Register 2");
-			XLSX.writeFile(wb, `SalesRegister2_${frappe.datetime.get_today()}.xlsx`);
-		}
-		if (typeof XLSX === "undefined") {
-			let script = document.createElement('script');
-			script.src = "https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js";
-			script.onload = export_excel;
-			document.head.appendChild(script);
-		} else {
-			export_excel();
-		}
-	});
+        // Only sum each invoice once
+        if (!invoice_seen[invoice]) {
+            invoice_seen[invoice] = true;
+
+            let grand = parseFloat($(this).find('td').eq(8).text().replace(/,/g, '')) || 0;
+            let paid = parseFloat($(this).find('td').eq(9).text().replace(/,/g, '')) || 0;
+            let outstanding = parseFloat($(this).find('td').eq(10).text().replace(/,/g, '')) || 0;
+
+            total_grand += grand;
+            total_paid += paid;
+            total_outstanding += outstanding;
+        }
+    });
+
+    $('#total-grand').text(total_grand.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#total-paid').text(total_paid.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
+    $('#total-outstanding').text(total_outstanding.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}));
+}
+
 
 	// --- Print PDF ---
 	$('#print-pdf').on('click', function () {

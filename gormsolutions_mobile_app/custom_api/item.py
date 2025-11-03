@@ -219,7 +219,7 @@ def get_item_details_last_sync(limit, offset, search=None, user=None, last_sync=
     pos_profiles = frappe.get_all("POS Profile", filters={"disabled": 0}, fields=["name"])
     pos_profile_name = None
     for profile in pos_profiles:
-        if frappe.db.exists("POS Profile User", {"parent": profile.name, "user": current_user}):
+        if frappe.db.exists("POS Profile User", {"parent": profile.name, "user": current_user,"default": 1}):
             pos_profile_name = profile.name
             break
     if not pos_profile_name:

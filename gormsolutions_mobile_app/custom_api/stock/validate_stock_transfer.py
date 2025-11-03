@@ -39,7 +39,7 @@ def validate_stock_entry(doc, method=None):
         if item.get("material_request"):
             continue
 
-        if doc.purpose == "Material Transfer" and doc.docstatus == 0:
+        if doc.purpose == "Material Transfer" and doc.docstatus == 0 and doc.add_to_transit == 0:
             if item.s_warehouse not in allowed_warehouses and item.qty:
                 frappe.throw(
                     f"Cannot enter quantity for warehouse '{item.s_warehouse}'. "

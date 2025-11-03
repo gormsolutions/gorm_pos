@@ -255,6 +255,84 @@ def download_gl_export(docname):
     doc.db_set("file_url", f"/files/{filename}")
     return {"file_url": f"/files/{filename}"}
 
+# @frappe.whitelist()
+# def fetch_all_gl_entries(
+#     from_date=None, to_date=None, company=None, account=None,
+#     cost_center=None, party_type=None, party=None, voucher_no=None,
+#     limit=1000, offset=0
+# ):
+#     """
+#     Fetch GL entries with advanced filtering, pagination, and additional info.
+#     """
+#     conditions = ["gle.docstatus = 1", "IFNULL(gle.is_cancelled, 0) = 0"]
+#     filters = {}
+
+#     if company:
+#         conditions.append("gle.company = %(company)s")
+#         filters["company"] = company
+#     if account:
+#         conditions.append("gle.account = %(account)s")
+#         filters["account"] = account
+#     if from_date:
+#         conditions.append("gle.posting_date >= %(from_date)s")
+#         filters["from_date"] = from_date
+#     if to_date:
+#         conditions.append("gle.posting_date <= %(to_date)s")
+#         filters["to_date"] = to_date
+#     if cost_center:
+#         conditions.append("gle.cost_center = %(cost_center)s")
+#         filters["cost_center"] = cost_center
+#     if party_type:
+#         conditions.append("gle.party_type = %(party_type)s")
+#         filters["party_type"] = party_type
+#     if party:
+#         conditions.append("gle.party = %(party)s")
+#         filters["party"] = party
+#     if voucher_no:
+#         conditions.append("gle.voucher_no = %(voucher_no)s")
+#         filters["voucher_no"] = voucher_no
+
+#     where_clause = " AND ".join(conditions)
+
+#     query = f"""
+#         SELECT
+#             gle.posting_date,
+#             gle.account,
+#             acc.account_name,
+#             gle.party_type,
+#             gle.party,
+#             IFNULL(cust.customer_name, IFNULL(supp.supplier_name, '')) AS party_name,
+#             cc.cost_center_name,
+#             gle.debit,
+#             gle.credit,
+#             gle.voucher_type,
+#             gle.voucher_no,
+#             gle.against_voucher,
+#             gle.against_voucher_type,
+#             proj.project_name,
+#             dept.department_name,
+#             gle.account_currency,
+#             gle.remarks,
+#             gle.company,
+#             gle.voucher_subtype,
+#             gle.against
+#         FROM `tabGL Entry` gle
+#         LEFT JOIN `tabAccount` acc ON acc.name = gle.account
+#         LEFT JOIN `tabCustomer` cust ON gle.party_type='Customer' AND gle.party = cust.name
+#         LEFT JOIN `tabSupplier` supp ON gle.party_type='Supplier' AND gle.party = supp.name
+#         LEFT JOIN `tabCost Center` cc ON cc.name = gle.cost_center
+#         LEFT JOIN `tabProject` proj ON proj.name = gle.project
+#         LEFT JOIN `tabDepartment` dept ON dept.name = gle.department
+#         WHERE {where_clause}
+#         ORDER BY gle.account ASC, gle.posting_date ASC, gle.creation ASC
+#         LIMIT %(limit)s OFFSET %(offset)s
+#     """
+
+#     filters["limit"] = limit
+#     filters["offset"] = offset
+
+#     return frappe.db.sql(query, filters, as_dict=True)
+
 @frappe.whitelist()
 def fetch_all_gl_entries(
     from_date=None, to_date=None, company=None, account=None,
@@ -262,23 +340,18 @@ def fetch_all_gl_entries(
     limit=1000, offset=0
 ):
     """
-    Fetch GL entries with advanced filtering, pagination, and additional info.
+    Fetch GL entries with opening & closing balances, advanced filtering, pagination, and additional info.
     """
     conditions = ["gle.docstatus = 1", "IFNULL(gle.is_cancelled, 0) = 0"]
     filters = {}
 
+    # --- Apply filters for main entries ---
     if company:
         conditions.append("gle.company = %(company)s")
         filters["company"] = company
     if account:
         conditions.append("gle.account = %(account)s")
         filters["account"] = account
-    if from_date:
-        conditions.append("gle.posting_date >= %(from_date)s")
-        filters["from_date"] = from_date
-    if to_date:
-        conditions.append("gle.posting_date <= %(to_date)s")
-        filters["to_date"] = to_date
     if cost_center:
         conditions.append("gle.cost_center = %(cost_center)s")
         filters["cost_center"] = cost_center
@@ -291,10 +364,17 @@ def fetch_all_gl_entries(
     if voucher_no:
         conditions.append("gle.voucher_no = %(voucher_no)s")
         filters["voucher_no"] = voucher_no
+    if from_date:
+        conditions.append("gle.posting_date >= %(from_date)s")
+        filters["from_date"] = from_date
+    if to_date:
+        conditions.append("gle.posting_date <= %(to_date)s")
+        filters["to_date"] = to_date
 
     where_clause = " AND ".join(conditions)
 
-    query = f"""
+    # --- Main query for GL Entries ---
+    entries_query = f"""
         SELECT
             gle.posting_date,
             gle.account,
@@ -328,7 +408,82 @@ def fetch_all_gl_entries(
         LIMIT %(limit)s OFFSET %(offset)s
     """
 
+    # --- Opening Balance Query (before from_date) ---
+    opening_filters = filters.copy()
+    opening_conditions = ["gle.docstatus = 1", "IFNULL(gle.is_cancelled, 0) = 0"]
+
+    if company:
+        opening_conditions.append("gle.company = %(company)s")
+    if account:
+        opening_conditions.append("gle.account = %(account)s")
+    if cost_center:
+        opening_conditions.append("gle.cost_center = %(cost_center)s")
+    if party_type:
+        opening_conditions.append("gle.party_type = %(party_type)s")
+    if party:
+        opening_conditions.append("gle.party = %(party)s")
+
+    if from_date:
+        opening_conditions.append("gle.posting_date < %(from_date)s")
+
+    opening_where = " AND ".join(opening_conditions)
+
+    opening_query = f"""
+        SELECT
+            gle.account,
+            acc.account_name,
+            SUM(gle.debit) AS opening_debit,
+            SUM(gle.credit) AS opening_credit,
+            SUM(gle.debit - gle.credit) AS opening_balance
+        FROM `tabGL Entry` gle
+        LEFT JOIN `tabAccount` acc ON acc.name = gle.account
+        WHERE {opening_where}
+        GROUP BY gle.account
+    """
+
+    # --- Closing Balance Query (up to to_date) ---
+    closing_filters = filters.copy()
+    closing_conditions = ["gle.docstatus = 1", "IFNULL(gle.is_cancelled, 0) = 0"]
+
+    if company:
+        closing_conditions.append("gle.company = %(company)s")
+    if account:
+        closing_conditions.append("gle.account = %(account)s")
+    if cost_center:
+        closing_conditions.append("gle.cost_center = %(cost_center)s")
+    if party_type:
+        closing_conditions.append("gle.party_type = %(party_type)s")
+    if party:
+        closing_conditions.append("gle.party = %(party)s")
+
+    if to_date:
+        closing_conditions.append("gle.posting_date <= %(to_date)s")
+
+    closing_where = " AND ".join(closing_conditions)
+
+    closing_query = f"""
+        SELECT
+            gle.account,
+            acc.account_name,
+            SUM(gle.debit) AS closing_debit,
+            SUM(gle.credit) AS closing_credit,
+            SUM(gle.debit - gle.credit) AS closing_balance
+        FROM `tabGL Entry` gle
+        LEFT JOIN `tabAccount` acc ON acc.name = gle.account
+        WHERE {closing_where}
+        GROUP BY gle.account
+    """
+
+    # --- Execute Queries ---
     filters["limit"] = limit
     filters["offset"] = offset
 
-    return frappe.db.sql(query, filters, as_dict=True)
+    opening_balances = frappe.db.sql(opening_query, opening_filters, as_dict=True)
+    closing_balances = frappe.db.sql(closing_query, closing_filters, as_dict=True)
+    entries = frappe.db.sql(entries_query, filters, as_dict=True)
+
+    return {
+        "opening_balances": opening_balances,
+        "entries": entries,
+        "closing_balances": closing_balances
+    }

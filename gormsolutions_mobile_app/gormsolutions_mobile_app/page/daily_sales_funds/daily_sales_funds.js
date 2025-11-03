@@ -21,13 +21,6 @@ frappe.pages['daily-sales-funds'].on_page_load = function(wrapper) {
         change: debounce_reload
     });
 
-    filters.company = page.add_field({
-        label: 'Company', fieldtype: 'Link',
-        options: 'Company',
-        default: frappe.defaults.get_default("Company"),
-        change: debounce_reload
-    });
-
     filters.cost_center = page.add_field({
         label: 'Cost Center', fieldtype: 'Link',
         options: 'Cost Center',
@@ -40,50 +33,83 @@ frappe.pages['daily-sales-funds'].on_page_load = function(wrapper) {
         change: debounce_reload
     });
 
-// --- Buttons and controls top toolbar ---
-const $controls = $(`
-<div class="mb-3 d-flex justify-content-between align-items-center flex-wrap" style="gap:10px;">
-    <div class="d-flex align-items-center gap-2">
-        <label class="mb-0">Rows per load:
-            <select id="page-size" class="form-select form-select-sm ms-1">
-                <option value="50" selected>50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="500">500</option>
-                <option value="1000">1000</option>
-            </select>
-        </label>
-        <button class="btn btn-primary btn-sm" id="load-more">Load More</button>
-        <span id="loading-indicator" style="display:none;">Loading...</span>
-    </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-secondary btn-sm" id="export-excel">Export to Excel</button>
-        <button class="btn btn-secondary btn-sm" id="print-pdf">Print PDF</button>
-    </div>
-</div>
-`).appendTo(page.body);
+    // ✅ Fetch permitted companies dynamically
+    frappe.call({
+        method: "gormsolutions_mobile_app.custom_api.restrictions.permisions.get_user_companies",
+    }).then(r => {
+        const companies = r.message || [];
 
+        if (!companies.length) {
+            filters.company = page.add_field({
+                label: 'Company',
+                fieldtype: 'Select',
+                options: ['No Permitted Company'],
+                default: 'No Permitted Company',
+                read_only: 1
+            });
+            return;
+        }
 
-    // --- Table ---
+        const options = companies.join('\n');
+        const default_company = companies.length === 1 ? companies[0] : (frappe.defaults.get_default("Company") || companies[0]);
+
+        filters.company = page.add_field({
+            label: 'Company',
+            fieldtype: 'Select',
+            options: options,
+            default: default_company,
+            reqd: 1,
+            change: debounce_reload
+        });
+
+        filters.company.set_value(default_company);
+
+        // ✅ Load initial data for the default company
+        load_data(false);
+    });
+
+    // --- Buttons & Table setup ---
+    const $controls = $(`
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap" style="gap:10px;">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0">Rows per load:
+                    <select id="page-size" class="form-select form-select-sm ms-1">
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                    </select>
+                </label>
+                <button class="btn btn-primary btn-sm" id="load-more">Load More</button>
+                <span id="loading-indicator" style="display:none;">Loading...</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-secondary btn-sm" id="export-excel">Export to Excel</button>
+                <button class="btn btn-secondary btn-sm" id="print-pdf">Print PDF</button>
+            </div>
+        </div>
+    `).appendTo(page.body);
+
     const $tableContainer = $(`
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover table-sm" id="daily-sales-funds-table">
-            <thead class="thead-dark sticky-top">
-                <tr>
-                    <th>#</th>
-                    <th>Account</th>
-                    <th class="text-end">Inflows</th>
-                </tr>
-            </thead>
-            <tbody id="daily-sales-funds-body"></tbody>
-            <tfoot class="table-light">
-                <tr>
-                    <th colspan="2" class="text-end">Total Inflows</th>
-                    <th class="text-end" id="total-inflows">0.00</th>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm" id="daily-sales-funds-table">
+                <thead class="thead-dark sticky-top">
+                    <tr>
+                        <th>#</th>
+                        <th>Account</th>
+                        <th class="text-end">Inflows</th>
+                    </tr>
+                </thead>
+                <tbody id="daily-sales-funds-body"></tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="2" class="text-end">Total Inflows</th>
+                        <th class="text-end" id="total-inflows">0.00</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     `).appendTo(page.body);
 
     const $tbody = $('#daily-sales-funds-body');
@@ -92,6 +118,8 @@ const $controls = $(`
 
     // --- Load Data ---
     function load_data(load_more = false) {
+        if (!filters.company || !filters.company.get_value()) return;
+
         if (!load_more) {
             current_start = 0;
             $tbody.empty();
@@ -113,7 +141,6 @@ const $controls = $(`
                 limit_page_length: page_size
             },
             callback: function(r) {
-                console.log(r);
                 $('#load-more').prop('disabled', false);
                 $('#loading-indicator').hide();
 
@@ -181,7 +208,4 @@ const $controls = $(`
         printWindow.document.close();
         setTimeout(() => { printWindow.print(); }, 500);
     });
-
-    // --- Initial Load ---
-    load_data();
 };

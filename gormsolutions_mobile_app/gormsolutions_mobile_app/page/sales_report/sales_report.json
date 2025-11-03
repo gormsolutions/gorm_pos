@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2025-10-29 12:03:22.525977",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-10-29 12:03:40.869025",
+ "modified_by": "Administrator",
+ "module": "Gormsolutions Mobile App",
+ "name": "sales-report",
+ "owner": "Administrator",
+ "page_name": "sales-report",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Sales Report by Category"
+}

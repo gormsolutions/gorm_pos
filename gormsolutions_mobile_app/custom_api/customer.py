@@ -74,7 +74,7 @@ def get_customer_details(limit, offset, search=None, last_sync=None):
 
         # Main query
         customer_list = frappe.db.sql(f"""
-            SELECT name, customer_name, mobile_no, email_id, creation, modified
+            SELECT name, customer_name, mobile_no, email_id, creation, customer_group, modified
             FROM `tabCustomer`
             WHERE {conditions}
             ORDER BY modified DESC
@@ -124,7 +124,7 @@ def get_customer_details_crave(limit, offset, search=None, last_sync=None):
 
         # Main query
         customer_list = frappe.db.sql(f"""
-            SELECT name, customer_name, mobile_no, email_id, creation, modified
+            SELECT name, customer_name, mobile_no, email_id, creation, customer_group,modified
             FROM `tabCustomer`
             WHERE {conditions}
             ORDER BY modified DESC
@@ -195,7 +195,6 @@ def get_loyalty_summary_internal(customer):
         "redeemed_value": redeemed_value,
         "remaining_value": remaining_value
     }
-
 
 @frappe.whitelist(allow_guest=True)
 def create_customer(
@@ -316,7 +315,6 @@ def fetch_customer_metadata():
             "message": _("Failed to fetch customer metadata"),
             "error": str(e)
         }
-
 
 @frappe.whitelist(allow_guest=True)
 def get_customer_count():
