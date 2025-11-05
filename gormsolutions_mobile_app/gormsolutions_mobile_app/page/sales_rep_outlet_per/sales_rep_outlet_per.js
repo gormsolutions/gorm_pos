@@ -1,8 +1,7 @@
-frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
-
+frappe.pages['sales-rep-outlet-per'].on_page_load = function(wrapper) {
     var page = frappe.ui.make_app_page({
         parent: wrapper,
-        title: 'Top 10 Products by Revenue',
+        title: 'Sales Rep / Cost Center Performance',
         single_column: true
     });
 
@@ -27,32 +26,38 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
         change: reload_data
     });
 
+    filters.sales_rep = page.add_field({
+        label: 'Sales Rep', fieldtype: 'Link',
+        options: 'Sales Person',
+        change: reload_data
+    });
+
     filters.cost_center = page.add_field({
         label: 'Cost Center', fieldtype: 'Link',
         options: 'Cost Center',
         change: reload_data
     });
 
-    filters.item_code = page.add_field({
-        label: 'Item', fieldtype: 'Link',
-        options: 'Item',
+    filters.customer = page.add_field({
+        label: 'Customer', fieldtype: 'Link',
+        options: 'Customer',
         change: reload_data
     });
 
     let $container = $(`
         <div class="mt-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4>Top 10 Products by Revenue</h4>
+                <h4>Sales Rep / Cost Center Performance</h4>
                 <button class="btn btn-primary btn-sm" id="print-pdf">Print PDF</button>
             </div>
-            <div id="top-products-table" class="mt-3"></div>
+            <div id="sales-performance-table" class="mt-3"></div>
         </div>
     `);
     $(wrapper).find('.layout-main-section').append($container);
 
     // Print PDF button with professional header
     $container.find('#print-pdf').on('click', function() {
-        let tableHtml = document.getElementById('top-products-table').innerHTML;
+        let tableHtml = document.getElementById('sales-performance-table').innerHTML;
         let company = filters.company.get_value() || "";
         let from_date = filters.from_date.get_value();
         let to_date = filters.to_date.get_value();
@@ -60,7 +65,7 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
         let printContents = `
             <div style="text-align:center; margin-bottom:20px;">
                 <h2>${company}</h2>
-                <h3>Top 10 Products by Revenue</h3>
+                <h3>Sales Rep / Cost Center Performance</h3>
                 <p><strong>From:</strong> ${from_date} &nbsp;&nbsp; <strong>To:</strong> ${to_date}</p>
                 <hr style="margin-top:10px; margin-bottom:20px;">
             </div>
@@ -78,13 +83,14 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
 
     function reload_data() {
         frappe.call({
-            method: "gormsolutions_mobile_app.custom_api.reports.top_10_products.get_top_products",
+            method: "gormsolutions_mobile_app.custom_api.reports.sales_rep_outler.get_performance",
             args: {
                 from_date: filters.from_date.get_value(),
                 to_date: filters.to_date.get_value(),
                 company: filters.company.get_value(),
+                sales_rep: filters.sales_rep.get_value(),
                 cost_center: filters.cost_center.get_value(),
-                item_code: filters.item_code.get_value()
+                customer: filters.customer.get_value()
             },
             callback: function(r) {
                 render_table(r.message || []);
@@ -97,23 +103,27 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Item Name</th>
-                        <th>Total Revenue</th>
+                        <th>Sales Rep</th>
+                        <th>Cost Center</th>
+                        <th>Customer</th>
+                        <th>Total Sales</th>
+                        <th>Number of Invoices</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${data.map(d => `
                         <tr>
-                            <td>${d.item_code}</td>
-                            <td>${d.item_name}</td>
-                            <td>${format_currency(d.total_revenue, "NGN")}</td>
+                            <td>${d.sales_rep}</td>
+                            <td>${d.cost_center}</td>
+                            <td>${d.customer}</td>
+                            <td>${format_currency(d.total_sales, "NGN")}</td>
+                            <td>${d.invoice_count}</td>
                         </tr>
                     `).join("")}
                 </tbody>
             </table>
         `;
-        $("#top-products-table").html(html);
+        $("#sales-performance-table").html(html);
     }
 
     reload_data();

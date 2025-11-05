@@ -1,58 +1,55 @@
-frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
-
+frappe.pages['procurement-spend-tr'].on_page_load = function(wrapper) {
     var page = frappe.ui.make_app_page({
         parent: wrapper,
-        title: 'Top 10 Products by Revenue',
+        title: 'Procurement Spend Trends (YoY, MoM, SPLY)',
         single_column: true
     });
 
-    // Filters
     let filters = {};
     let today = frappe.datetime.get_today();
+    let from_default = frappe.datetime.add_months(today, -2); // last 3 months
 
+    // Filters
     filters.from_date = page.add_field({
         label: 'From Date', fieldtype: 'Date',
-        default: today, reqd: 1, change: reload_data
+        default: from_default, reqd: 1, change: reload_data
     });
-
     filters.to_date = page.add_field({
         label: 'To Date', fieldtype: 'Date',
         default: today, reqd: 1, change: reload_data
     });
-
     filters.company = page.add_field({
         label: 'Company', fieldtype: 'Link',
         options: 'Company',
-        default: frappe.defaults.get_default("Company"),
-        change: reload_data
+        default: frappe.defaults.get_default("Company"), change: reload_data
     });
-
-    filters.cost_center = page.add_field({
-        label: 'Cost Center', fieldtype: 'Link',
-        options: 'Cost Center',
-        change: reload_data
+    filters.supplier = page.add_field({
+        label: 'Supplier', fieldtype: 'Link',
+        options: 'Supplier', change: reload_data
     });
-
     filters.item_code = page.add_field({
         label: 'Item', fieldtype: 'Link',
-        options: 'Item',
-        change: reload_data
+        options: 'Item', change: reload_data
+    });
+    filters.cost_center = page.add_field({
+        label: 'Cost Center', fieldtype: 'Link',
+        options: 'Cost Center', change: reload_data
     });
 
     let $container = $(`
         <div class="mt-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4>Top 10 Products by Revenue</h4>
+                <h4>Procurement Spend Trends (YoY, MoM, SPLY)</h4>
                 <button class="btn btn-primary btn-sm" id="print-pdf">Print PDF</button>
             </div>
-            <div id="top-products-table" class="mt-3"></div>
+            <div id="procurement-trends-table" class="mt-3"></div>
         </div>
     `);
     $(wrapper).find('.layout-main-section').append($container);
 
-    // Print PDF button with professional header
+    // Print PDF
     $container.find('#print-pdf').on('click', function() {
-        let tableHtml = document.getElementById('top-products-table').innerHTML;
+        let tableHtml = document.getElementById('procurement-trends-table').innerHTML;
         let company = filters.company.get_value() || "";
         let from_date = filters.from_date.get_value();
         let to_date = filters.to_date.get_value();
@@ -60,7 +57,7 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
         let printContents = `
             <div style="text-align:center; margin-bottom:20px;">
                 <h2>${company}</h2>
-                <h3>Top 10 Products by Revenue</h3>
+                <h3>Procurement Spend Trends (YoY, MoM, SPLY)</h3>
                 <p><strong>From:</strong> ${from_date} &nbsp;&nbsp; <strong>To:</strong> ${to_date}</p>
                 <hr style="margin-top:10px; margin-bottom:20px;">
             </div>
@@ -69,51 +66,56 @@ frappe.pages['top-10-products-by-r'].on_page_load = function(wrapper) {
 
         let originalContents = document.body.innerHTML;
         document.body.innerHTML = printContents;
-
         window.print();
-
         document.body.innerHTML = originalContents;
-        location.reload(); // restore page after printing
+        location.reload();
     });
 
     function reload_data() {
         frappe.call({
-            method: "gormsolutions_mobile_app.custom_api.reports.top_10_products.get_top_products",
+            method: "gormsolutions_mobile_app.custom_api.reports.custom_reports.procurement_trends.get_procurement_trends",
             args: {
                 from_date: filters.from_date.get_value(),
                 to_date: filters.to_date.get_value(),
                 company: filters.company.get_value(),
-                cost_center: filters.cost_center.get_value(),
-                item_code: filters.item_code.get_value()
+                supplier: filters.supplier.get_value(),
+                item_code: filters.item_code.get_value(),
+                cost_center: filters.cost_center.get_value()
             },
             callback: function(r) {
-                render_table(r.message || []);
+                render_table(r.message || {});
             }
         });
     }
 
     function render_table(data) {
+        function display(val) {
+            return (val === null || val === undefined || val === 0) ? "-" : format_currency(val, "NGN");
+        }
+
         let html = `
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Item Name</th>
-                        <th>Total Revenue</th>
+                        <th>Period</th>
+                        <th>Current</th>
+                        <th>MoM</th>
+                        <th>SPLY</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${data.map(d => `
+                    ${Object.keys(data).map(period => `
                         <tr>
-                            <td>${d.item_code}</td>
-                            <td>${d.item_name}</td>
-                            <td>${format_currency(d.total_revenue, "NGN")}</td>
+                            <td>${period}</td>
+                            <td>${display(data[period].current)}</td>
+                            <td>${display(data[period].mom)}</td>
+                            <td>${display(data[period].sply)}</td>
                         </tr>
                     `).join("")}
                 </tbody>
             </table>
         `;
-        $("#top-products-table").html(html);
+        $("#procurement-trends-table").html(html);
     }
 
     reload_data();
