@@ -33,12 +33,6 @@ def create_payment(sales_invoice,mode_of_payment,paid_amount,reference_no=None):
     except Exception as e:
         return e
 
-# @frappe.whitelist(allow_guest=True)
-# def get_mode_of_payment():
-#     mode_of_pay_list = frappe.get_all('Mode of Payment',
-#     filters={"enabled":1},
-#     fields=['name'])
-#     return mode_of_pay_list
 
 @frappe.whitelist()
 def mode_of_payment():

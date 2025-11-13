@@ -110,8 +110,15 @@ def create_gas_invoice(customer, items, include_payments=None, remarks=None, mod
             gas_invoice.submit()
 
         frappe.db.commit()
-        return gas_invoice.name
+        return {
+        "success": "Sales Invoice created and submitted successfully.",
+        "invoice_name": gas_invoice.name,
+ 
+         }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Gas Invoice Creation Error")
-        return f"Error: {str(e)}"
+        # 🧼 Clean error handling
+        frappe_error = getattr(e, 'message', None) or str(e)
+        if hasattr(e, 'args') and e.args:
+            frappe_error = e.args[0]
+        return {"error": f"Failed to create Sales Invoice: {frappe_error}"} 

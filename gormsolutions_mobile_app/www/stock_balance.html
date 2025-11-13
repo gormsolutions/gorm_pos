@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SuperMarket Stock Balance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
+    <style>
+        /* Print styling */
+        @media print {
+            body { background: white; }
+            .no-print { display: none; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-orange-50 font-sans min-h-screen">
+
+<div class="container mx-auto p-6">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-6 text-center bg-white rounded-lg shadow py-4">
+        🛒 SuperMarket Stock Balance
+    </h1>
+
+    <!-- Filters Card -->
+    <div class="bg-gradient-to-r from-green-100 to-orange-100 shadow-lg rounded-xl p-6 mb-6 border border-gray-200 no-print">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Item</label>
+                <select id="item" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm hover:border-green-400"></select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Start Date</label>
+                <input type="date" id="start-date" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm hover:border-green-400">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">End Date</label>
+                <input type="date" id="end-date" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white shadow-sm hover:border-green-400">
+            </div>
+        </div>
+    </div>
+
+    <!-- Totals Card -->
+    <div class="bg-white shadow-xl rounded-xl p-4 mb-6 flex justify-between items-center text-gray-700 font-semibold text-lg border-l-8 border-orange-400">
+        <div>Total Quantity: <span id="total-qty">0</span></div>
+        <div>Total Stock Value: <span id="total-value">$0.00</span></div>
+        <button onclick="window.print()" class="bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-1 rounded shadow no-print">🖨️ Print</button>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white shadow-xl rounded-xl overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gradient-to-r from-orange-200 to-green-200 sticky top-0">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Item Code</th>
+                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Quantity</th>
+                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Valuation Rate</th>
+                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Stock Value</th>
+                </tr>
+            </thead>
+            <tbody id="stock-table" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const BASE_URL = "http://147.79.101.23/api/method/gormsolutions_mobile_app.custom_api.supermarket";
+    const ugxFormatter = new Intl.NumberFormat('en-UG', {style: 'currency', currency: 'UGX', minimumFractionDigits:0, maximumFractionDigits:0});
+    let itemSelect;
+
+    // Fetch Items
+    async function fetchItems() {
+        try {
+            const res = await fetch(`${BASE_URL}.stock_balance.get_items_for_supermarkets`);
+            const data = await res.json();
+            const items = data.message || [];
+            const itemSelectEl = document.getElementById("item");
+            itemSelectEl.innerHTML = '<option value="">All Items</option>';
+            items.forEach(i => itemSelectEl.add(new Option(`${i.item_name} (${i.item_code})`, i.item_code)));
+            if (!itemSelect) {
+                itemSelect = new TomSelect("#item", {create:false, sortField:{field:"text", direction:"asc"}});
+            } else {
+                itemSelect.clearOptions();
+                itemSelect.addOption(items.map(i => ({value:i.item_code, text:`${i.item_name} (${i.item_code})`})));
+            }
+        } catch (error) {
+            console.error("Error fetching items:", error);
+        }
+    }
+
+    // Fetch Stock
+    async function fetchStock() {
+        try {
+            const itemEl = document.getElementById("item");
+            const startEl = document.getElementById("start-date");
+            const endEl = document.getElementById("end-date");
+
+            if (!itemEl || !startEl || !endEl) return;
+
+            const params = new URLSearchParams();
+            if(itemEl.value) params.append("item_code", itemEl.value);
+            if(startEl.value) params.append("start_date", startEl.value);
+            if(endEl.value) params.append("end_date", endEl.value);
+
+            const res = await fetch(`${BASE_URL}.stock_balance.get_stock_balance?${params.toString()}`);
+            const data = await res.json();
+            const stock = data.message || [];
+
+            const tableBody = document.getElementById("stock-table");
+            tableBody.innerHTML = "";
+
+            let totalQty = 0, totalValue = 0;
+
+            stock.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.classList.add("hover:bg-orange-50");
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${row.item_code}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right">${row.qty}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right">${ugxFormatter.format(row.valuation_rate)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right">${ugxFormatter.format(row.value)}</td>
+                `;
+                tableBody.appendChild(tr);
+
+                totalQty += row.qty;
+                totalValue += row.value;
+            });
+
+            document.getElementById("total-qty").textContent = totalQty;
+            document.getElementById("total-value").textContent = ugxFormatter.format(totalValue);
+
+        } catch (error) {
+            console.error("Error fetching stock:", error);
+        }
+    }
+
+    // Live fetch when user changes item or dates
+    document.getElementById("item").addEventListener("change", fetchStock);
+    document.getElementById("start-date").addEventListener("change", fetchStock);
+    document.getElementById("end-date").addEventListener("change", fetchStock);
+
+    // Initial load
+    fetchItems().then(fetchStock);
+});
+</script>
+</body>
+</html>

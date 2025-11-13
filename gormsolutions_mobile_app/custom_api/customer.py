@@ -20,15 +20,36 @@ def get_customer_details(limit,offset,search=None):
 
     return customer_details
 
-@frappe.whitelist(allow_guest=True)
-def create_customer(customer_name,mobile_no,email_id=None):
+# @frappe.whitelist(allow_guest=True)
+# def create_customer(customer_name,mobile_no,email_id=None):
 
-    doc = frappe.new_doc('Customer')
+#     doc = frappe.new_doc('Customer')
+#     doc.customer_name = customer_name
+#     doc.mobile_no = mobile_no
+#     doc.custom_customer_section = 'Gas Customer'
+#     if email_id:
+#         doc.email_id = email_id
+#     doc.insert()
+
+#     return doc.name
+
+@frappe.whitelist(allow_guest=True)
+def create_customer(customer_name, mobile_no, email_id=None):
+    # Check if a customer with the same mobile number already exists
+    existing_customer = frappe.db.exists("Customer", {"mobile_no": mobile_no})
+    if existing_customer:
+        frappe.throw(f"A customer with mobile number {mobile_no} already exists: {existing_customer}")
+
+    # Create new customer
+    doc = frappe.new_doc("Customer")
     doc.customer_name = customer_name
     doc.mobile_no = mobile_no
+    doc.custom_customer_section = "Gas Customer"
     if email_id:
         doc.email_id = email_id
-    doc.insert()
+
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
 
     return doc.name
 
