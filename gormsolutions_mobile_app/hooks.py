@@ -184,6 +184,10 @@ doc_events = {
             "gormsolutions_mobile_app.custom_api.stock.stock_transfer_setting.create_material_issue_on_difference",
    
         ],
+    },
+
+    "Product Bundle": {
+        "before_save": "gormsolutions_mobile_app.custom_api.product_bundle.before_save_product_bundle"
     }
     
 }

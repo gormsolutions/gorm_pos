@@ -25,7 +25,7 @@ def fetch_user_coupons():
     company = pos_profile_doc.company
 
     # Build filters
-    filters = {"custom_disable":0}
+    filters = {"custom_disable":0,"custom_active":1}
     if company:
         filters["custom_company"] = company  # Filter by POS Profile company
 
@@ -41,6 +41,8 @@ def fetch_user_coupons():
             "custom_min_amt",
             "custom_max_amt",
             "custom_affected_item",
+            "custom_on_customer",
+            "custom_customer_group",
             "custom_company",
             "custom_discount_percent",
             "custom_discount_amount",

@@ -3,8 +3,7 @@ import frappe
 @frappe.whitelist()
 def get_products_with_margins(search=None, start=0, page_length=20, download=0):
     """
-    Fetch item list with cost, selling price, and margin.
-    If download=1, returns all items ignoring pagination.
+    Fetch Product Bundles with bakery cost, icing qty, selling price, and margin.
     """
     start = int(start or 0)
     page_length = int(page_length or 20)
@@ -19,13 +18,13 @@ def get_products_with_margins(search=None, start=0, page_length=20, download=0):
 
     if search:
         or_filters = [
-            ["item_code", "like", f"%{search}%"],
-            ["item_name", "like", f"%{search}%"]
+            ["new_item_code", "like", f"%{search}%"],
+            ["description", "like", f"%{search}%"]
         ]
 
     items = frappe.get_list(
-        "Item",
-        fields=["item_code", "item_name", "valuation_rate"],
+        "Product Bundle",
+        fields=["new_item_code","description", "custom_total_bakery_cost", "custom_total_qty"],
         filters=filters,
         or_filters=or_filters,
         limit_start=start,
@@ -36,29 +35,27 @@ def get_products_with_margins(search=None, start=0, page_length=20, download=0):
 
     result = []
     for item in items:
-        item_code = item.item_code
+        item_code = item.new_item_code
 
-        # Cost lookup: Purchase -> Stock Ledger -> Sales -> Valuation Rate
-        cost = (
-            frappe.db.get_value("Purchase Invoice Item", {"item_code": item_code}, "base_rate", order_by="creation desc")
-            or frappe.db.get_value("Stock Ledger Entry", {"item_code": item_code}, "valuation_rate", order_by="posting_date desc")
-            or frappe.db.get_value("Sales Invoice Item", {"item_code": item_code}, "base_rate", order_by="creation desc")
-            or item.valuation_rate
-            or 0
-        )
-
-        # Selling price from Item Price or Sales Invoice
         selling_price = (
             frappe.db.get_value("Item Price", {"item_code": item_code, "selling": 1}, "price_list_rate", order_by="creation desc")
             or frappe.db.get_value("Sales Invoice Item", {"item_code": item_code}, "base_rate", order_by="creation desc")
             or 0
         )
 
+        total_cost = (item.custom_total_bakery_cost or 0) + (item.custom_total_qty or 0)
+        margin = float(selling_price or 0) - total_cost
+        margin_pct = total_cost and (margin / total_cost * 100) or 0
+
         result.append({
-            "item_code": item.item_code,
-            "item_name": item.item_name,
-            "cost": float(cost or 0),
+            "item_code": item.new_item_code,
+            "item_name": item.description,
+            "cost": item.custom_total_bakery_cost or 0,
+            "icing_cost": item.custom_total_qty or 0,
+            "total_cost": total_cost,
             "selling_price": float(selling_price or 0),
+            "margin": margin,
+            "margin_pct": round(margin_pct, 2),
         })
 
     return result

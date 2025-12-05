@@ -171,7 +171,7 @@ def get_item_details_buddle(limit, offset, search=None, user=None, last_sync=Non
             bundle_items_raw = frappe.get_all(
                 "Product Bundle Item",
                 filters={"parent": bundle_name},
-                fields=["item_code"]
+                fields=["item_code", "qty", "description"]
             )
             bundle_items = []
             for b in bundle_items_raw:
@@ -191,6 +191,8 @@ def get_item_details_buddle(limit, offset, search=None, user=None, last_sync=Non
                 bundle_items.append({
                     "item_code": component_code,
                     "stock": component_stock,
+                    "qty": b.get("qty") or 0,
+                    "description": b.get("description") or "",
                     "price": component_price,
                     "is_stock_item": is_stock_item
                 })
@@ -369,6 +371,8 @@ def get_item_details_last_sync(limit, offset, search=None, user=None, last_sync=
             item["bundle_items"] = [
                 {
                     "item_code": b["item_code"],
+                    "bundle_qty": b.get("qty") or 0,
+                    "description": b.get("description") or "",
                     "stock": get_stock_balance(b["item_code"], default_warehouse) or 0.00,
                     "price": (
                         frappe.db.get_value(
@@ -387,7 +391,7 @@ def get_item_details_last_sync(limit, offset, search=None, user=None, last_sync=
                 for b in frappe.get_all(
                     "Product Bundle Item",
                     filters={"parent": bundle_name},
-                    fields=["item_code"],
+                    fields=["item_code", "qty", "description"],
                 )
             ]
         else:
