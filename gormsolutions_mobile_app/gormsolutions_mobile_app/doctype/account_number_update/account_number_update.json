@@ -8,7 +8,8 @@
   "company",
   "new_account_number",
   "column_break_xlyl",
-  "account"
+  "account",
+  "new_account_name"
  ],
  "fields": [
   {
@@ -34,12 +35,17 @@
    "in_list_view": 1,
    "label": " Account Number",
    "options": "Account"
+  },
+  {
+   "fieldname": "new_account_name",
+   "fieldtype": "Data",
+   "label": "New Account Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-15 13:27:50.915933",
+ "modified": "2025-12-15 17:45:52.131069",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Account Number Update",

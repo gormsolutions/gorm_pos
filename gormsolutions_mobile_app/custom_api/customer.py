@@ -213,7 +213,7 @@ def create_customer(
 		existing = frappe.db.get_all(
 			"Customer",
 			filters={"mobile_no": mobile_no.strip()},
-			fields=["name", "customer_name", "custom_cost_center"]
+			fields=["name", "customer_name", "custom_cost_center","disabled"]
 		)
 
 		if existing:
@@ -222,7 +222,8 @@ def create_customer(
 				"message": _("A customer with this mobile number already exists."),
 				"customer": existing[0].name,
 				"customer_name": existing[0].customer_name,
-				"custom_cost_center": existing[0].custom_cost_center
+				"custom_cost_center": existing[0].custom_cost_center,
+				"disabled": existing[0].disabled
 			}
 
 		# --- Step 2: Fetch POS Profile for user ---

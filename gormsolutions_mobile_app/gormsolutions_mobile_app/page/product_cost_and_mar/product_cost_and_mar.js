@@ -15,7 +15,10 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 	$(`
 		<div>
 			<div class="flex items-center gap-2 mb-3">
-				<input type="text" class="form-control item-filter" placeholder="Search Item Code or Name" style="max-width: 300px;">
+				<input type="text" class="form-control item-filter"
+					placeholder="Search Item Code or Name"
+					style="max-width: 300px;">
+
 				<div class="ml-auto flex gap-2">
 					<button class="btn btn-outline-secondary export-excel">Export Excel</button>
 					<button class="btn btn-outline-secondary export-pdf">Export PDF</button>
@@ -23,6 +26,7 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 					<button class="btn btn-secondary next-btn">Next</button>
 				</div>
 			</div>
+
 			<div class="table-responsive">
 				<table class="table table-bordered table-sm report-table">
 					<thead class="table-light">
@@ -31,6 +35,7 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 							<th>Item Name</th>
 							<th>Bakery Cost</th>
 							<th>Icing Cost</th>
+							<th>Labour Cost</th>
 							<th>Total Cost</th>
 							<th>Selling Price</th>
 							<th>Margin</th>
@@ -40,6 +45,7 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 					<tbody class="report-body"></tbody>
 				</table>
 			</div>
+
 			<div class="text-muted small mt-2 page-info"></div>
 		</div>
 	`).appendTo(page.body);
@@ -49,45 +55,58 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 	function debounce(func, wait) {
 		let timeout;
 		return function() {
-			const context = this, args = arguments;
 			clearTimeout(timeout);
-			timeout = setTimeout(() => func.apply(context, args), wait);
-		}
+			timeout = setTimeout(() => func.apply(this, arguments), wait);
+		};
 	}
 
-	function load_data(download=0) {
+	function load_data(download = 0) {
 		frappe.dom.freeze("Loading Product Data...");
+
 		frappe.call({
 			method: "gormsolutions_mobile_app.custom_api.reports.custom_reports.products_magins.get_products_with_margins",
-			args: { search: current_filter, start: offset, page_length: limit, download: download },
+			args: {
+				search: current_filter,
+				start: offset,
+				page_length: limit,
+				download: download
+			},
 			callback: function(r) {
 				let $tbody = $(wrapper).find(".report-body");
 				$tbody.empty();
 				last_data = r.message || [];
 
-				if (!r.message || !r.message.length) {
-					$tbody.append("<tr><td colspan='8' class='text-center text-muted'>No matching items</td></tr>");
+				if (!last_data.length) {
+					$tbody.append(
+						"<tr><td colspan='9' class='text-center text-muted'>No matching items</td></tr>"
+					);
 					frappe.dom.unfreeze();
 					return;
 				}
 
-				r.message.forEach(i => {
+				last_data.forEach(i => {
 					$tbody.append(`
 						<tr>
-							<td><a href="/app/item/${encodeURIComponent(i.item_code)}" target="_blank">${i.item_code}</a></td>
+							<td>
+								<a href="/app/item/${encodeURIComponent(i.item_code)}" target="_blank">
+									${i.item_code}
+								</a>
+							</td>
 							<td>${frappe.utils.escape_html(i.item_name || "")}</td>
-							<td>${frappe.format(i.cost, { fieldtype: 'Currency' })}</td>
-							<td>${frappe.format(i.icing_cost, { fieldtype: 'Currency' })}</td>
-							<td>${frappe.format(i.total_cost, { fieldtype: 'Currency' })}</td>
-							<td>${frappe.format(i.selling_price, { fieldtype: 'Currency' })}</td>
-							<td>${frappe.format(i.margin, { fieldtype: 'Currency' })}</td>
+							<td>${frappe.format(i.bakery_cost, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(i.icing_cost, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(i.labour_total_rate || 0, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(i.total_cost, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(i.selling_price, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(i.margin, { fieldtype: "Currency" })}</td>
 							<td>${i.margin_pct}%</td>
 						</tr>
 					`);
 				});
 
-				if(!download) {
-					$(wrapper).find(".page-info").text(`Showing ${offset + 1} to ${offset + r.message.length}`);
+				if (!download) {
+					$(wrapper).find(".page-info")
+						.text(`Showing ${offset + 1} to ${offset + last_data.length}`);
 				}
 
 				frappe.dom.unfreeze();
@@ -96,8 +115,15 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 	}
 
 	// Pagination
-	$(wrapper).on("click", ".next-btn", function () { offset += limit; load_data(); });
-	$(wrapper).on("click", ".prev-btn", function () { offset = Math.max(0, offset - limit); load_data(); });
+	$(wrapper).on("click", ".next-btn", function () {
+		offset += limit;
+		load_data();
+	});
+
+	$(wrapper).on("click", ".prev-btn", function () {
+		offset = Math.max(0, offset - limit);
+		load_data();
+	});
 
 	// Search
 	$(wrapper).find(".item-filter").on("input", debounce(function () {
@@ -112,14 +138,34 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 			method: "gormsolutions_mobile_app.custom_api.reports.custom_reports.products_magins.get_products_with_margins",
 			args: { search: current_filter, download: 1 },
 			callback: function(r) {
-				if (!r.message.length) return frappe.msgprint("No data to export.");
+				if (!r.message || !r.message.length) {
+					return frappe.msgprint("No data to export.");
+				}
+
 				const rows = [
-					["Item Code","Item Name","Bakery Cost","Icing Cost","Total Cost","Selling Price","Margin","Margin %"],
+					[
+						"Item Code", "Item Name",
+						"Bakery Cost", "Icing Cost", "Labour Cost",
+						"Total Cost", "Selling Price",
+						"Margin", "Margin %"
+					],
 					...r.message.map(i => [
-						i.item_code,i.item_name,i.cost,i.icing_cost,i.total_cost,i.selling_price,i.margin,i.margin_pct
+						i.item_code,
+						i.item_name,
+						i.bakery_cost,
+						i.icing_cost,
+						i.labour_total_rate || 0,
+						i.total_cost,
+						i.selling_price,
+						i.margin,
+						i.margin_pct
 					])
 				];
-				frappe.tools.downloadify(rows, "Product_Cost_and_Margin_Report.xlsx");
+
+				frappe.tools.downloadify(
+					rows,
+					"Product_Cost_and_Margin_Report.xlsx"
+				);
 			}
 		});
 	});
@@ -130,13 +176,35 @@ frappe.pages['product-cost-and-mar'].on_page_load = function(wrapper) {
 			method: "gormsolutions_mobile_app.custom_api.reports.custom_reports.products_magins.get_products_with_margins",
 			args: { search: current_filter, download: 1 },
 			callback: function(r) {
-				if (!r.message.length) return frappe.msgprint("No data to export.");
+				if (!r.message || !r.message.length) {
+					return frappe.msgprint("No data to export.");
+				}
+
 				const { jsPDF } = window.jspdf;
 				const doc = new jsPDF();
+
 				const rows = r.message.map(i => [
-					i.item_code,i.item_name,i.cost,i.icing_cost,i.total_cost,i.selling_price,i.margin,i.margin_pct
+					i.item_code,
+					i.item_name,
+					i.bakery_cost,
+					i.icing_cost,
+					i.labour_total_rate || 0,
+					i.total_cost,
+					i.selling_price,
+					i.margin,
+					i.margin_pct
 				]);
-				doc.autoTable({ head: [["Item Code","Item Name","Bakery Cost","Icing Cost","Total Cost","Selling Price","Margin","Margin %"]], body: rows });
+
+				doc.autoTable({
+					head: [[
+						"Item Code", "Item Name",
+						"Bakery Cost", "Icing Cost", "Labour Cost",
+						"Total Cost", "Selling Price",
+						"Margin", "Margin %"
+					]],
+					body: rows
+				});
+
 				doc.save("Product_Cost_and_Margin_Report.pdf");
 			}
 		});

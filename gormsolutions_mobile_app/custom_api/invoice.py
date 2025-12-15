@@ -522,6 +522,27 @@ def create_invoice_coupon(
 
     current_user = user or frappe.session.user
 
+    # ----------------------------------------------------------
+    # DUPLICATE PREVENTION (AT THE VERY TOP)
+    # ----------------------------------------------------------
+    if remarks:
+        exists = frappe.db.exists("Sales Invoice", {"remarks": remarks})
+        if exists:
+            return {
+                "error": f"Duplicate prevented: Invoice with UID '{remarks}' already exists ({exists}).",
+                "status": "not_posted"
+            }
+
+    if reference_no:
+        ref_exists = frappe.db.exists("Sales Invoice Payment", {"reference_no": reference_no})
+        if ref_exists:
+            return {
+                "error": f"Duplicate payment reference: {reference_no} already used ({ref_exists}).",
+                "status": "not_posted"
+            }
+
+    # ----------------------------------------------------------
+
     # --- Validation: Customer must be selected ---
     if not customer_name:
         return {
@@ -603,21 +624,6 @@ def create_invoice_coupon(
             "reference_no": reference_no
         })
 
-    # --- Duplicate Prevention ---
-    if remarks:
-        existing_invoice = frappe.db.exists("Sales Invoice", {"remarks": remarks})
-        if existing_invoice:
-            return {
-                "error": f"Duplicate entry: Invoice with UID '{remarks}' already exists ({existing_invoice})."
-            }
-
-    if reference_no:
-        ref_exists = frappe.db.exists("Sales Invoice Payment", {"reference_no": reference_no})
-        if ref_exists:
-            return {
-                "error": f"Duplicate payment reference: {reference_no} already used ({ref_exists})."
-            }
-
     # --- Prepare Invoice Data --- 
     invoice_doc_data = {
         "doctype": "Sales Invoice",
@@ -644,7 +650,7 @@ def create_invoice_coupon(
     if posting_date:
         try:
             invoice_doc_data["posting_date"] = getdate(posting_date)
-            invoice_doc_data["set_posting_time"] = 1  # ensure exact posting time is used
+            invoice_doc_data["set_posting_time"] = 1
         except Exception as e:
             return {"error": f"Invalid posting date: {posting_date}. Error: {str(e)}"}
     else:
@@ -686,8 +692,8 @@ def create_invoice_coupon(
         try:
             invoice_doc = frappe.get_doc(invoice_doc_data)
 
-            # Re-check for duplicates
-            if frappe.db.exists("Sales Invoice", {"remarks": remarks}):
+            # SAFETY DUPLICATE CHECK BEFORE COMMIT
+            if remarks and frappe.db.exists("Sales Invoice", {"remarks": remarks}):
                 return {
                     "error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."
                 }
@@ -701,9 +707,9 @@ def create_invoice_coupon(
         except Exception as e:
             frappe.db.rollback()
 
-            message = str(e)
+            msg = str(e)
 
-            if ("Lock wait timeout" in message or "deadlock" in message.lower()) and attempt < MAX_RETRIES - 1:
+            if ("Lock wait timeout" in msg or "deadlock" in msg.lower()) and attempt < MAX_RETRIES - 1:
                 time.sleep(0.4)
                 continue
 
