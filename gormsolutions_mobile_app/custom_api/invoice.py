@@ -3,8 +3,50 @@ import json
 from frappe.utils import flt
 from frappe import _
 
+# @frappe.whitelist(allow_guest=True)
+# def get_invoice_details(limit, offset, search=None):
+# 	# Initialize filters with docstatus filter
+# 	filters = [["docstatus", "=", 1]]
+
+# 	# Add a filter for the logged-in user
+# 	filters.append(["owner", "=", frappe.session.user])
+
+# 	# If a search term is provided, add a filter for customer_name
+# 	if search:
+# 		filters.append(["customer_name", "like", f"%{search}%"])
+
+# 	# Fetch filtered Sales Invoice details
+# 	sales_invoice_details = frappe.get_all(
+# 		'Sales Invoice',
+# 		fields=[
+# 			'name', 'grand_total', 'remarks', 'posting_date', 'paid_amount', 'outstanding_amount',
+# 			'owner', 'docstatus', 'status', 'customer', 'customer_name'
+# 		],
+# 		order_by='posting_date desc',
+# 		filters=filters,
+# 		start=offset,
+# 		page_length=limit
+# 	)
+
+# 	# Fetch and attach items and payment info
+# 	for invoice in sales_invoice_details:
+# 		invoice["items"] = frappe.get_all(
+# 			"Sales Invoice Item",
+# 			fields=["item_code", "item_name", "qty", "uom", "rate", "amount"],
+# 			filters={"parent": invoice["name"]}
+# 		)
+
+# 		invoice["payments"] = frappe.get_all(
+# 			"Sales Invoice Payment",
+# 			fields=["mode_of_payment", "amount", "reference_no"],
+# 			filters={"parent": invoice["name"]}
+# 		)
+
+# 	return sales_invoice_details
+
+
 @frappe.whitelist(allow_guest=True)
-def get_invoice_details(limit, offset, search=None):
+def get_invoice_details(limit, offset, search=None, from_date=None, to_date=None):
 	# Initialize filters with docstatus filter
 	filters = [["docstatus", "=", 1]]
 
@@ -14,6 +56,10 @@ def get_invoice_details(limit, offset, search=None):
 	# If a search term is provided, add a filter for customer_name
 	if search:
 		filters.append(["customer_name", "like", f"%{search}%"])
+
+	# Exact BETWEEN dates (inclusive)
+	if from_date and to_date:
+		filters.append(["posting_date", "between", [from_date, to_date]])
 
 	# Fetch filtered Sales Invoice details
 	sales_invoice_details = frappe.get_all(
@@ -45,157 +91,206 @@ def get_invoice_details(limit, offset, search=None):
 	return sales_invoice_details
 
 
-@frappe.whitelist()
-def create_invoice(
-	customer_name,
-	paid_amount=None,
-	items=None,
-	remarks=None,
-	payments=None,
-	mode_of_payment=None,
-	reference_no=None,
-	user=None,
-	is_pos=None,
-	update_stock=None,
-	discount_amount=0,
-	discount_percentage=0,
-	loyalty_points=None,
-	redeem_loyalty_points=None
-):
-	current_user = user or frappe.session.user
+@frappe.whitelist(allow_guest=True)
+def get_invoice_details(limit, offset, search=None, from_date=None, to_date=None):
+	# Initialize filters with docstatus filter
+	filters = [["docstatus", "=", 1]]
 
-	if not customer_name:
-		return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
+	# Add a filter for the logged-in user
+	filters.append(["owner", "=", frappe.session.user])
 
-	# --- Parse Inputs ---
-	if isinstance(items, str):
-		items = json.loads(items)
-	if isinstance(payments, str):
-		payments = json.loads(payments)
+	# If a search term is provided, add a filter for customer_name
+	if search:
+		filters.append(["customer_name", "like", f"%{search}%"])
 
-	# --- Get Warehouse ---
-	fallback_warehouse = frappe.get_all(
-		'User Permission',
-		filters={'user': current_user, 'allow': 'Warehouse', "is_default": 0},
-		fields=['for_value']
+	# Optional date filters (posting_date)
+	if from_date:
+		filters.append(["posting_date", ">=", from_date])
+
+	if to_date:
+		filters.append(["posting_date", "<=", to_date])
+
+	# Fetch filtered Sales Invoice details
+	sales_invoice_details = frappe.get_all(
+		'Sales Invoice',
+		fields=[
+			'name', 'grand_total', 'remarks', 'posting_date', 'paid_amount', 'outstanding_amount',
+			'owner', 'docstatus', 'status', 'customer', 'customer_name'
+		],
+		order_by='posting_date desc',
+		filters=filters,
+		start=offset,
+		page_length=limit
 	)
-	fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else \
-						 frappe.db.get_single_value('Stock Settings', 'default_warehouse')
 
-	if not fallback_warehouse:
-		return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
-
-	# --- Get POS Profile if applicable ---
-	pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
-	if is_pos:
-		result = frappe.db.sql("""
-			SELECT ppu.parent
-			FROM `tabPOS Profile User` ppu
-			JOIN `tabPOS Profile` pp ON pp.name = ppu.parent
-			WHERE ppu.user = %s AND ppu.default = 1 AND pp.disabled = 0
-			LIMIT 1
-		""", (current_user,), as_dict=0)
-
-		if result:
-			pos_profile = result[0][0]
-			pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
-			fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
-			cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
-			company = frappe.db.get_value("POS Profile", pos_profile, "company")
-		else:
-			return {"error": f"No enabled default POS Profile found for user '{current_user}'."}
-
-	# --- Assign Warehouse and Cost Center to Items ---
-	if is_pos or update_stock:
-		for item in items or []:
-			item["warehouse"] = pos_warehouse or fallback_warehouse
-			item["cost_center"] = cost_center
-		update_stock = 1
-
-	# --- Payment Entries ---
-	payment_entries = []
-	if payments:
-		for p in payments:
-			mode = p.get("mode_of_payment")
-			amount = flt(p.get("amount") or 0)
-			reference = p.get("reference_no")
-			if amount > 0:
-				payment_entries.append({
-					"mode_of_payment": mode,
-					"amount": amount,
-					"reference_no": reference
-				})
-	elif mode_of_payment and paid_amount:
-		payment_entries.append({
-			"mode_of_payment": mode_of_payment,
-			"amount": flt(paid_amount),
-			"reference_no": reference_no
-		})
-
-	# --- Duplicate Prevention ---
-	# Use remarks as unique UID (from offline)
-	if remarks:
-		existing_invoice = frappe.db.exists(
-			"Sales Invoice",
-			{"remarks": remarks}
+	# Fetch and attach items and payment info
+	for invoice in sales_invoice_details:
+		invoice["items"] = frappe.get_all(
+			"Sales Invoice Item",
+			fields=["item_code", "item_name", "qty", "uom", "rate", "amount"],
+			filters={"parent": invoice["name"]}
 		)
-		if existing_invoice:
-			return {"error": f"Duplicate entry: Invoice with UID '{remarks}' already exists ({existing_invoice})."}
 
-	# Also block if same reference_no already linked to a payment
-	if reference_no:
-		ref_exists = frappe.db.exists(
+		invoice["payments"] = frappe.get_all(
 			"Sales Invoice Payment",
-			{"reference_no": reference_no}
+			fields=["mode_of_payment", "amount", "reference_no"],
+			filters={"parent": invoice["name"]}
 		)
-		if ref_exists:
-			return {"error": f"Duplicate payment reference: {reference_no} already used ({ref_exists})."}
 
-	# --- Prepare Invoice Data ---
-	invoice_doc_data = {
-		"doctype": "Sales Invoice",
-		"customer": customer_name,
-		"company": company,
-		"remarks": remarks,  # <-- your unique UID
-		"custom_from": "GormPos",
-		"fulfillment_branch_": fulfillment_branch,
-		"cost_center": cost_center,
-		"update_stock": update_stock,
-		"confirm_branch": 1,
-		"is_pos": is_pos,
-		"items": items or [],
-		"discount_amount": discount_amount,
-		"additional_discount_percentage": discount_percentage,
-		"apply_discount_on": "Grand Total",
-		"payments": payment_entries,
-		"redeem_loyalty_points": redeem_loyalty_points,
-		"loyalty_points": flt(loyalty_points),
-	}
+	return sales_invoice_details
 
-	if is_pos:
-		invoice_doc_data["pos_profile"] = pos_profile
 
-	# --- Insert and Submit ---
-	try:
-		invoice_doc = frappe.get_doc(invoice_doc_data)
+# @frappe.whitelist()
+# def create_invoice(
+# 	customer_name,
+# 	paid_amount=None,
+# 	items=None,
+# 	remarks=None,
+# 	payments=None,
+# 	mode_of_payment=None,
+# 	reference_no=None,
+# 	user=None,
+# 	is_pos=None,
+# 	update_stock=None,
+# 	discount_amount=0,
+# 	discount_percentage=0,
+# 	loyalty_points=None,
+# 	redeem_loyalty_points=None
+# ):
+# 	current_user = user or frappe.session.user
 
-		# Safety: check again before final insert (in case of race condition)
-		if frappe.db.exists("Sales Invoice", {"remarks": remarks}):
-			return {"error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."}
+# 	if not customer_name:
+# 		return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
 
-		invoice_doc.insert()
-		invoice_doc.submit()
-		frappe.db.commit()
+# 	# --- Parse Inputs ---
+# 	if isinstance(items, str):
+# 		items = json.loads(items)
+# 	if isinstance(payments, str):
+# 		payments = json.loads(payments)
 
-		return invoice_doc
+# 	# --- Get Warehouse ---
+# 	fallback_warehouse = frappe.get_all(
+# 		'User Permission',
+# 		filters={'user': current_user, 'allow': 'Warehouse', "is_default": 0},
+# 		fields=['for_value']
+# 	)
+# 	fallback_warehouse = fallback_warehouse[0]['for_value'] if fallback_warehouse else \
+# 						 frappe.db.get_single_value('Stock Settings', 'default_warehouse')
 
-	except Exception as e:
-		frappe.db.rollback()
-		frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
-		return {
-			"error": f"Invoice creation halted: {str(e)}",
-			"status": "not_posted"
-		}
+# 	if not fallback_warehouse:
+# 		return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
+
+# 	# --- Get POS Profile if applicable ---
+# 	pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
+# 	if is_pos:
+# 		result = frappe.db.sql("""
+# 			SELECT ppu.parent
+# 			FROM `tabPOS Profile User` ppu
+# 			JOIN `tabPOS Profile` pp ON pp.name = ppu.parent
+# 			WHERE ppu.user = %s AND ppu.default = 1 AND pp.disabled = 0
+# 			LIMIT 1
+# 		""", (current_user,), as_dict=0)
+
+# 		if result:
+# 			pos_profile = result[0][0]
+# 			pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+# 			fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
+# 			cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
+# 			company = frappe.db.get_value("POS Profile", pos_profile, "company")
+# 		else:
+# 			return {"error": f"No enabled default POS Profile found for user '{current_user}'."}
+
+# 	# --- Assign Warehouse and Cost Center to Items ---
+# 	if is_pos or update_stock:
+# 		for item in items or []:
+# 			item["warehouse"] = pos_warehouse or fallback_warehouse
+# 			item["cost_center"] = cost_center
+# 		update_stock = 1
+
+# 	# --- Payment Entries ---
+# 	payment_entries = []
+# 	if payments:
+# 		for p in payments:
+# 			mode = p.get("mode_of_payment")
+# 			amount = flt(p.get("amount") or 0)
+# 			reference = p.get("reference_no")
+# 			if amount > 0:
+# 				payment_entries.append({
+# 					"mode_of_payment": mode,
+# 					"amount": amount,
+# 					"reference_no": reference
+# 				})
+# 	elif mode_of_payment and paid_amount:
+# 		payment_entries.append({
+# 			"mode_of_payment": mode_of_payment,
+# 			"amount": flt(paid_amount),
+# 			"reference_no": reference_no
+# 		})
+
+# 	# --- Duplicate Prevention ---
+# 	# Use remarks as unique UID (from offline)
+# 	if remarks:
+# 		existing_invoice = frappe.db.exists(
+# 			"Sales Invoice",
+# 			{"remarks": remarks}
+# 		)
+# 		if existing_invoice:
+# 			return {"error": f"Duplicate entry: Invoice with UID '{remarks}' already exists ({existing_invoice})."}
+
+# 	# Also block if same reference_no already linked to a payment
+# 	if reference_no:
+# 		ref_exists = frappe.db.exists(
+# 			"Sales Invoice Payment",
+# 			{"reference_no": reference_no}
+# 		)
+# 		if ref_exists:
+# 			return {"error": f"Duplicate payment reference: {reference_no} already used ({ref_exists})."}
+
+# 	# --- Prepare Invoice Data ---
+# 	invoice_doc_data = {
+# 		"doctype": "Sales Invoice",
+# 		"customer": customer_name,
+# 		"company": company,
+# 		"remarks": remarks,  # <-- your unique UID
+# 		"custom_from": "GormPos",
+# 		"fulfillment_branch_": fulfillment_branch,
+# 		"cost_center": cost_center,
+# 		"update_stock": update_stock,
+# 		"confirm_branch": 1,
+# 		"is_pos": is_pos,
+# 		"items": items or [],
+# 		"discount_amount": discount_amount,
+# 		"additional_discount_percentage": discount_percentage,
+# 		"apply_discount_on": "Grand Total",
+# 		"payments": payment_entries,
+# 		"redeem_loyalty_points": redeem_loyalty_points,
+# 		"loyalty_points": flt(loyalty_points),
+# 	}
+
+# 	if is_pos:
+# 		invoice_doc_data["pos_profile"] = pos_profile
+
+# 	# --- Insert and Submit ---
+# 	try:
+# 		invoice_doc = frappe.get_doc(invoice_doc_data)
+
+# 		# Safety: check again before final insert (in case of race condition)
+# 		if frappe.db.exists("Sales Invoice", {"remarks": remarks}):
+# 			return {"error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."}
+
+# 		invoice_doc.insert()
+# 		invoice_doc.submit()
+# 		frappe.db.commit()
+
+# 		return invoice_doc
+
+# 	except Exception as e:
+# 		frappe.db.rollback()
+# 		frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
+# 		return {
+# 			"error": f"Invoice creation halted: {str(e)}",
+# 			"status": "not_posted"
+# 		}
 
 @frappe.whitelist()
 def get_sales_payment_summary(start_date, end_date):
@@ -332,13 +427,42 @@ def get_sales_payment_summary(start_date, end_date):
 #     discount_amount=0,
 #     discount_percentage=0,
 #     loyalty_points=None,
-#     redeem_loyalty_points=None
+#     redeem_loyalty_points=None,
+#     posting_date=None  # <-- new optional parameter
 # ):
+#     import time
+#     from frappe.utils import flt, getdate, nowdate
+#     import json
+
 #     current_user = user or frappe.session.user
 
-# 	# --- Validation: Customer must be selected ---
+#     # ----------------------------------------------------------
+#     # DUPLICATE PREVENTION (AT THE VERY TOP)
+#     # ----------------------------------------------------------
+#     if remarks:
+#         exists = frappe.db.exists("Sales Invoice", {"remarks": remarks})
+#         if exists:
+#             return {
+#                 "error": f"Duplicate prevented: Invoice with UID '{remarks}' already exists ({exists}).",
+#                 "status": "not_posted"
+#             }
+
+#     if reference_no:
+#         ref_exists = frappe.db.exists("Sales Invoice Payment", {"reference_no": reference_no})
+#         if ref_exists:
+#             return {
+#                 "error": f"Duplicate payment reference: {reference_no} already used ({ref_exists}).",
+#                 "status": "not_posted"
+#             }
+
+#     # ----------------------------------------------------------
+
+#     # --- Validation: Customer must be selected ---
 #     if not customer_name:
-#         return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
+#         return {
+#             "error": "Cannot create invoice: Customer not selected.",
+#             "status": "not_posted"
+#         }
 
 #     # --- Parse Inputs ---
 #     if isinstance(items, str):
@@ -348,20 +472,24 @@ def get_sales_payment_summary(start_date, end_date):
 
 #     # --- Get Warehouse ---
 #     fallback_warehouse = frappe.get_all(
-#         'User Permission',
-#         filters={'user': current_user, 'allow': 'Warehouse', "is_default": 0},
-#         fields=['for_value']
+#         "User Permission",
+#         filters={"user": current_user, "allow": "Warehouse", "is_default": 0},
+#         fields=["for_value"]
 #     )
+
 #     fallback_warehouse = (
-#         fallback_warehouse[0]['for_value']
-#         if fallback_warehouse else frappe.db.get_single_value('Stock Settings', 'default_warehouse')
+#         fallback_warehouse[0]["for_value"]
+#         if fallback_warehouse else frappe.db.get_single_value("Stock Settings", "default_warehouse")
 #     )
 
 #     if not fallback_warehouse:
-#         return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
+#         return {
+#             "error": "No warehouse assigned to user and no default warehouse in Stock Settings."
+#         }
 
 #     # --- Get POS Profile if applicable ---
 #     pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
+
 #     if is_pos:
 #         result = frappe.db.sql("""
 #             SELECT ppu.parent
@@ -389,17 +517,20 @@ def get_sales_payment_summary(start_date, end_date):
 
 #     # --- Payment Entries ---
 #     payment_entries = []
+
 #     if payments:
 #         for p in payments:
 #             mode = p.get("mode_of_payment")
 #             amount = flt(p.get("amount") or 0)
 #             reference = p.get("reference_no")
+
 #             if amount > 0:
 #                 payment_entries.append({
 #                     "mode_of_payment": mode,
 #                     "amount": amount,
 #                     "reference_no": reference
 #                 })
+
 #     elif mode_of_payment and paid_amount:
 #         payment_entries.append({
 #             "mode_of_payment": mode_of_payment,
@@ -407,24 +538,7 @@ def get_sales_payment_summary(start_date, end_date):
 #             "reference_no": reference_no
 #         })
 
-#     # --- Duplicate Prevention ---
-#     if remarks:
-#         existing_invoice = frappe.db.exists(
-#             "Sales Invoice",
-#             {"remarks": remarks}
-#         )
-#         if existing_invoice:
-#             return {"error": f"Duplicate entry: Invoice with UID '{remarks}' already exists ({existing_invoice})."}
-
-#     if reference_no:
-#         ref_exists = frappe.db.exists(
-#             "Sales Invoice Payment",
-#             {"reference_no": reference_no}
-#         )
-#         if ref_exists:
-#             return {"error": f"Duplicate payment reference: {reference_no} already used ({ref_exists})."}
-
-#     # --- Prepare Invoice Data ---
+#     # --- Prepare Invoice Data --- 
 #     invoice_doc_data = {
 #         "doctype": "Sales Invoice",
 #         "customer": customer_name,
@@ -440,11 +554,21 @@ def get_sales_payment_summary(start_date, end_date):
 #         "discount_amount": discount_amount,
 #         "additional_discount_percentage": discount_percentage,
 #         "apply_discount_on": "Grand Total",
-# 		"is_cash_or_non_trade_discount": 1,
+#         "is_cash_or_non_trade_discount": 1,
 #         "payments": payment_entries,
 #         "redeem_loyalty_points": redeem_loyalty_points,
 #         "loyalty_points": flt(loyalty_points),
 #     }
+
+#     # --- Set posting date ---
+#     if posting_date:
+#         try:
+#             invoice_doc_data["posting_date"] = getdate(posting_date)
+#             invoice_doc_data["set_posting_time"] = 1
+#         except Exception as e:
+#             return {"error": f"Invalid posting date: {posting_date}. Error: {str(e)}"}
+#     else:
+#         invoice_doc_data["posting_date"] = nowdate()
 
 #     if is_pos:
 #         invoice_doc_data["pos_profile"] = pos_profile
@@ -475,27 +599,46 @@ def get_sales_payment_summary(start_date, end_date):
 
 #             invoice_doc_data["custom_coupon_code"] = str(coupon_code)
 
-#     # --- Insert and Submit ---
-#     try:
-#         invoice_doc = frappe.get_doc(invoice_doc_data)
+#     # --- Insert and Submit with Retry ---
+#     MAX_RETRIES = 3
 
-#         # Re-check for duplicates
-#         if frappe.db.exists("Sales Invoice", {"remarks": remarks}):
-#             return {"error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."}
+#     for attempt in range(MAX_RETRIES):
+#         try:
+#             invoice_doc = frappe.get_doc(invoice_doc_data)
 
-#         invoice_doc.insert()
-#         invoice_doc.submit()
-#         frappe.db.commit()
+#             # SAFETY DUPLICATE CHECK BEFORE COMMIT
+#             if remarks and frappe.db.exists("Sales Invoice", {"remarks": remarks}):
+#                 return {
+#                     "error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."
+#                 }
 
-#         return invoice_doc
+#             invoice_doc.insert()
+#             invoice_doc.submit()
+#             frappe.db.commit()
 
-#     except Exception as e:
-#         frappe.db.rollback()
-#         frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
-#         return {
-#             "error": f"Invoice creation halted: {str(e)}",
-#             "status": "not_posted"
-#         }
+#             return invoice_doc
+
+#         except Exception as e:
+#             frappe.db.rollback()
+
+#             msg = str(e)
+
+#             if ("Lock wait timeout" in msg or "deadlock" in msg.lower()) and attempt < MAX_RETRIES - 1:
+#                 time.sleep(0.4)
+#                 continue
+
+#             frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
+
+#             return {
+#                 "error": f"Invoice creation halted: {str(e)}",
+#                 "status": "not_posted"
+#             }
+
+
+import frappe
+import time
+from frappe.utils import flt, getdate, nowdate
+import json
 
 @frappe.whitelist()
 def create_invoice_coupon(
@@ -514,41 +657,31 @@ def create_invoice_coupon(
     discount_percentage=0,
     loyalty_points=None,
     redeem_loyalty_points=None,
-    posting_date=None  # <-- new optional parameter
+    posting_date=None
 ):
-    import time
-    from frappe.utils import flt, getdate, nowdate
-    import json
-
     current_user = user or frappe.session.user
 
     # ----------------------------------------------------------
-    # DUPLICATE PREVENTION (AT THE VERY TOP)
+    # USE USER PROVIDED REMARKS AND SAVE TO UID TRACKER
     # ----------------------------------------------------------
-    if remarks:
-        exists = frappe.db.exists("Sales Invoice", {"remarks": remarks})
-        if exists:
-            return {
-                "error": f"Duplicate prevented: Invoice with UID '{remarks}' already exists ({exists}).",
-                "status": "not_posted"
-            }
+    if not remarks:
+        return {"error": "Cannot create invoice: 'remarks' must be provided.", "status": "not_posted"}
 
-    if reference_no:
-        ref_exists = frappe.db.exists("Sales Invoice Payment", {"reference_no": reference_no})
-        if ref_exists:
-            return {
-                "error": f"Duplicate payment reference: {reference_no} already used ({ref_exists}).",
-                "status": "not_posted"
-            }
-
-    # ----------------------------------------------------------
+    try:
+        # Save in Invoice UID Tracker
+        tracker_doc = frappe.get_doc({"doctype": "Invoice UID Tracker", "uid": remarks})
+        tracker_doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+    except frappe.DuplicateEntryError:
+        frappe.db.rollback()
+        return {"error": f"Duplicate UID: '{remarks}' already exists in Invoice UID Tracker.", "status": "not_posted"}
+    except Exception as e:
+        frappe.db.rollback()
+        return {"error": f"Failed to create UID Tracker entry: {str(e)}", "status": "not_posted"}
 
     # --- Validation: Customer must be selected ---
     if not customer_name:
-        return {
-            "error": "Cannot create invoice: Customer not selected.",
-            "status": "not_posted"
-        }
+        return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
 
     # --- Parse Inputs ---
     if isinstance(items, str):
@@ -562,20 +695,15 @@ def create_invoice_coupon(
         filters={"user": current_user, "allow": "Warehouse", "is_default": 0},
         fields=["for_value"]
     )
-
     fallback_warehouse = (
         fallback_warehouse[0]["for_value"]
         if fallback_warehouse else frappe.db.get_single_value("Stock Settings", "default_warehouse")
     )
-
     if not fallback_warehouse:
-        return {
-            "error": "No warehouse assigned to user and no default warehouse in Stock Settings."
-        }
+        return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
 
     # --- Get POS Profile if applicable ---
     pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
-
     if is_pos:
         result = frappe.db.sql("""
             SELECT ppu.parent
@@ -603,20 +731,15 @@ def create_invoice_coupon(
 
     # --- Payment Entries ---
     payment_entries = []
-
     if payments:
         for p in payments:
-            mode = p.get("mode_of_payment")
             amount = flt(p.get("amount") or 0)
-            reference = p.get("reference_no")
-
             if amount > 0:
                 payment_entries.append({
-                    "mode_of_payment": mode,
+                    "mode_of_payment": p.get("mode_of_payment"),
                     "amount": amount,
-                    "reference_no": reference
+                    "reference_no": p.get("reference_no")
                 })
-
     elif mode_of_payment and paid_amount:
         payment_entries.append({
             "mode_of_payment": mode_of_payment,
@@ -624,12 +747,12 @@ def create_invoice_coupon(
             "reference_no": reference_no
         })
 
-    # --- Prepare Invoice Data --- 
+    # --- Prepare Invoice Data ---
     invoice_doc_data = {
         "doctype": "Sales Invoice",
         "customer": customer_name,
         "company": company,
-        "remarks": remarks,
+        "remarks": remarks,  # Use the UID from tracker
         "custom_from": "GormPos",
         "fulfillment_branch_": fulfillment_branch,
         "cost_center": cost_center,
@@ -644,78 +767,51 @@ def create_invoice_coupon(
         "payments": payment_entries,
         "redeem_loyalty_points": redeem_loyalty_points,
         "loyalty_points": flt(loyalty_points),
+        "posting_date": nowdate(),
     }
 
-    # --- Set posting date ---
+    # --- Set posting date if provided ---
     if posting_date:
         try:
             invoice_doc_data["posting_date"] = getdate(posting_date)
             invoice_doc_data["set_posting_time"] = 1
         except Exception as e:
             return {"error": f"Invalid posting date: {posting_date}. Error: {str(e)}"}
-    else:
-        invoice_doc_data["posting_date"] = nowdate()
 
     if is_pos:
         invoice_doc_data["pos_profile"] = pos_profile
 
     # --- Coupon discount ---
-    discount_account = None
-    discount_amount = 0.0
-    discount_percent = 0.0
-
     if coupon_code:
         discount_doc = frappe.get_all(
             "Coupon Code",
             filters={"custom_company": company, "name": coupon_code},
             fields=["custom_discount_account", "custom_discount_amount", "custom_discount_percent"]
         )
-
         if discount_doc:
-            discount_account = discount_doc[0].get("custom_discount_account")
-            discount_amount = flt(discount_doc[0].get("custom_discount_amount") or 0)
-            discount_percent = flt(discount_doc[0].get("custom_discount_percent") or 0)
-
-            if discount_account:
-                invoice_doc_data["additional_discount_account"] = discount_account
-            if discount_amount > 0:
-                invoice_doc_data["discount_amount"] = discount_amount
-            elif discount_percent > 0:
-                invoice_doc_data["additional_discount_percentage"] = discount_percent
-
+            disc = discount_doc[0]
+            if disc.get("custom_discount_account"):
+                invoice_doc_data["additional_discount_account"] = disc["custom_discount_account"]
+            if flt(disc.get("custom_discount_amount") or 0) > 0:
+                invoice_doc_data["discount_amount"] = flt(disc["custom_discount_amount"])
+            elif flt(disc.get("custom_discount_percent") or 0) > 0:
+                invoice_doc_data["additional_discount_percentage"] = flt(disc["custom_discount_percent"])
             invoice_doc_data["custom_coupon_code"] = str(coupon_code)
 
     # --- Insert and Submit with Retry ---
     MAX_RETRIES = 3
-
     for attempt in range(MAX_RETRIES):
         try:
             invoice_doc = frappe.get_doc(invoice_doc_data)
-
-            # SAFETY DUPLICATE CHECK BEFORE COMMIT
-            if remarks and frappe.db.exists("Sales Invoice", {"remarks": remarks}):
-                return {
-                    "error": f"Duplicate detected at commit: invoice with UID '{remarks}' already exists."
-                }
-
             invoice_doc.insert()
             invoice_doc.submit()
             frappe.db.commit()
-
             return invoice_doc
-
         except Exception as e:
             frappe.db.rollback()
-
             msg = str(e)
-
             if ("Lock wait timeout" in msg or "deadlock" in msg.lower()) and attempt < MAX_RETRIES - 1:
                 time.sleep(0.4)
                 continue
-
             frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
-
-            return {
-                "error": f"Invoice creation halted: {str(e)}",
-                "status": "not_posted"
-            }
+            return {"error": f"Invoice creation halted: {str(e)}", "status": "not_posted"}
