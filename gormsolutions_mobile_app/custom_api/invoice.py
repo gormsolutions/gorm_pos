@@ -635,183 +635,183 @@ def get_sales_payment_summary(start_date, end_date):
 #             }
 
 
-import frappe
-import time
-from frappe.utils import flt, getdate, nowdate
-import json
+# import frappe
+# import time
+# from frappe.utils import flt, getdate, nowdate
+# import json
 
-@frappe.whitelist()
-def create_invoice_coupon(
-    customer_name,
-    paid_amount=None,
-    items=None,
-    remarks=None,
-    payments=None,
-    coupon_code=None,
-    mode_of_payment=None,
-    reference_no=None,
-    user=None,
-    is_pos=None,
-    update_stock=None,
-    discount_amount=0,
-    discount_percentage=0,
-    loyalty_points=None,
-    redeem_loyalty_points=None,
-    posting_date=None
-):
-    current_user = user or frappe.session.user
+# @frappe.whitelist()
+# def create_invoice_coupon(
+#     customer_name,
+#     paid_amount=None,
+#     items=None,
+#     remarks=None,
+#     payments=None,
+#     coupon_code=None,
+#     mode_of_payment=None,
+#     reference_no=None,
+#     user=None,
+#     is_pos=None,
+#     update_stock=None,
+#     discount_amount=0,
+#     discount_percentage=0,
+#     loyalty_points=None,
+#     redeem_loyalty_points=None,
+#     posting_date=None
+# ):
+#     current_user = user or frappe.session.user
 
-    # ----------------------------------------------------------
-    # USE USER PROVIDED REMARKS AND SAVE TO UID TRACKER
-    # ----------------------------------------------------------
-    if not remarks:
-        return {"error": "Cannot create invoice: 'remarks' must be provided.", "status": "not_posted"}
+#     # ----------------------------------------------------------
+#     # USE USER PROVIDED REMARKS AND SAVE TO UID TRACKER
+#     # ----------------------------------------------------------
+#     if not remarks:
+#         return {"error": "Cannot create invoice: 'remarks' must be provided.", "status": "not_posted"}
 
-    try:
-        # Save in Invoice UID Tracker
-        tracker_doc = frappe.get_doc({"doctype": "Invoice UID Tracker", "uid": remarks})
-        tracker_doc.insert(ignore_permissions=True)
-        frappe.db.commit()
-    except frappe.DuplicateEntryError:
-        frappe.db.rollback()
-        return {"error": f"Duplicate UID: '{remarks}' already exists in Invoice UID Tracker.", "status": "not_posted"}
-    except Exception as e:
-        frappe.db.rollback()
-        return {"error": f"Failed to create UID Tracker entry: {str(e)}", "status": "not_posted"}
+#     try:
+#         # Save in Invoice UID Tracker
+#         tracker_doc = frappe.get_doc({"doctype": "Invoice UID Tracker", "uid": remarks})
+#         tracker_doc.insert(ignore_permissions=True)
+#         frappe.db.commit()
+#     except frappe.DuplicateEntryError:
+#         frappe.db.rollback()
+#         return {"error": f"Duplicate UID: '{remarks}' already exists in Invoice UID Tracker.", "status": "not_posted"}
+#     except Exception as e:
+#         frappe.db.rollback()
+#         return {"error": f"Failed to create UID Tracker entry: {str(e)}", "status": "not_posted"}
 
-    # --- Validation: Customer must be selected ---
-    if not customer_name:
-        return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
+#     # --- Validation: Customer must be selected ---
+#     if not customer_name:
+#         return {"error": "Cannot create invoice: Customer not selected.", "status": "not_posted"}
 
-    # --- Parse Inputs ---
-    if isinstance(items, str):
-        items = json.loads(items)
-    if isinstance(payments, str):
-        payments = json.loads(payments)
+#     # --- Parse Inputs ---
+#     if isinstance(items, str):
+#         items = json.loads(items)
+#     if isinstance(payments, str):
+#         payments = json.loads(payments)
 
-    # --- Get Warehouse ---
-    fallback_warehouse = frappe.get_all(
-        "User Permission",
-        filters={"user": current_user, "allow": "Warehouse", "is_default": 0},
-        fields=["for_value"]
-    )
-    fallback_warehouse = (
-        fallback_warehouse[0]["for_value"]
-        if fallback_warehouse else frappe.db.get_single_value("Stock Settings", "default_warehouse")
-    )
-    if not fallback_warehouse:
-        return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
+#     # --- Get Warehouse ---
+#     fallback_warehouse = frappe.get_all(
+#         "User Permission",
+#         filters={"user": current_user, "allow": "Warehouse", "is_default": 0},
+#         fields=["for_value"]
+#     )
+#     fallback_warehouse = (
+#         fallback_warehouse[0]["for_value"]
+#         if fallback_warehouse else frappe.db.get_single_value("Stock Settings", "default_warehouse")
+#     )
+#     if not fallback_warehouse:
+#         return {"error": "No warehouse assigned to user and no default warehouse in Stock Settings."}
 
-    # --- Get POS Profile if applicable ---
-    pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
-    if is_pos:
-        result = frappe.db.sql("""
-            SELECT ppu.parent
-            FROM `tabPOS Profile User` ppu
-            JOIN `tabPOS Profile` pp ON pp.name = ppu.parent
-            WHERE ppu.user = %s AND ppu.default = 1 AND pp.disabled = 0
-            LIMIT 1
-        """, (current_user,), as_dict=0)
+#     # --- Get POS Profile if applicable ---
+#     pos_profile = pos_warehouse = fulfillment_branch = company = cost_center = None
+#     if is_pos:
+#         result = frappe.db.sql("""
+#             SELECT ppu.parent
+#             FROM `tabPOS Profile User` ppu
+#             JOIN `tabPOS Profile` pp ON pp.name = ppu.parent
+#             WHERE ppu.user = %s AND ppu.default = 1 AND pp.disabled = 0
+#             LIMIT 1
+#         """, (current_user,), as_dict=0)
 
-        if result:
-            pos_profile = result[0][0]
-            pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
-            fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
-            cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
-            company = frappe.db.get_value("POS Profile", pos_profile, "company")
-        else:
-            return {"error": f"No enabled default POS Profile found for user '{current_user}'."}
+#         if result:
+#             pos_profile = result[0][0]
+#             pos_warehouse = frappe.db.get_value("POS Profile", pos_profile, "warehouse")
+#             fulfillment_branch = frappe.db.get_value("POS Profile", pos_profile, "fulfillment_branch_")
+#             cost_center = frappe.db.get_value("POS Profile", pos_profile, "cost_center")
+#             company = frappe.db.get_value("POS Profile", pos_profile, "company")
+#         else:
+#             return {"error": f"No enabled default POS Profile found for user '{current_user}'."}
 
-    # --- Assign Warehouse and Cost Center to Items ---
-    if is_pos or update_stock:
-        for item in items or []:
-            item["warehouse"] = pos_warehouse or fallback_warehouse
-            item["cost_center"] = cost_center
-        update_stock = 1
+#     # --- Assign Warehouse and Cost Center to Items ---
+#     if is_pos or update_stock:
+#         for item in items or []:
+#             item["warehouse"] = pos_warehouse or fallback_warehouse
+#             item["cost_center"] = cost_center
+#         update_stock = 1
 
-    # --- Payment Entries ---
-    payment_entries = []
-    if payments:
-        for p in payments:
-            amount = flt(p.get("amount") or 0)
-            if amount > 0:
-                payment_entries.append({
-                    "mode_of_payment": p.get("mode_of_payment"),
-                    "amount": amount,
-                    "reference_no": p.get("reference_no")
-                })
-    elif mode_of_payment and paid_amount:
-        payment_entries.append({
-            "mode_of_payment": mode_of_payment,
-            "amount": flt(paid_amount),
-            "reference_no": reference_no
-        })
+#     # --- Payment Entries ---
+#     payment_entries = []
+#     if payments:
+#         for p in payments:
+#             amount = flt(p.get("amount") or 0)
+#             if amount > 0:
+#                 payment_entries.append({
+#                     "mode_of_payment": p.get("mode_of_payment"),
+#                     "amount": amount,
+#                     "reference_no": p.get("reference_no")
+#                 })
+#     elif mode_of_payment and paid_amount:
+#         payment_entries.append({
+#             "mode_of_payment": mode_of_payment,
+#             "amount": flt(paid_amount),
+#             "reference_no": reference_no
+#         })
 
-    # --- Prepare Invoice Data ---
-    invoice_doc_data = {
-        "doctype": "Sales Invoice",
-        "customer": customer_name,
-        "company": company,
-        "remarks": remarks,  # Use the UID from tracker
-        "custom_from": "GormPos",
-        "fulfillment_branch_": fulfillment_branch,
-        "cost_center": cost_center,
-        "update_stock": update_stock,
-        "confirm_branch": 1,
-        "is_pos": is_pos,
-        "items": items or [],
-        "discount_amount": discount_amount,
-        "additional_discount_percentage": discount_percentage,
-        "apply_discount_on": "Grand Total",
-        "is_cash_or_non_trade_discount": 1,
-        "payments": payment_entries,
-        "redeem_loyalty_points": redeem_loyalty_points,
-        "loyalty_points": flt(loyalty_points),
-        "posting_date": nowdate(),
-    }
+#     # --- Prepare Invoice Data ---
+#     invoice_doc_data = {
+#         "doctype": "Sales Invoice",
+#         "customer": customer_name,
+#         "company": company,
+#         "remarks": remarks,  # Use the UID from tracker
+#         "custom_from": "GormPos",
+#         "fulfillment_branch_": fulfillment_branch,
+#         "cost_center": cost_center,
+#         "update_stock": update_stock,
+#         "confirm_branch": 1,
+#         "is_pos": is_pos,
+#         "items": items or [],
+#         "discount_amount": discount_amount,
+#         "additional_discount_percentage": discount_percentage,
+#         "apply_discount_on": "Grand Total",
+#         "is_cash_or_non_trade_discount": 1,
+#         "payments": payment_entries,
+#         "redeem_loyalty_points": redeem_loyalty_points,
+#         "loyalty_points": flt(loyalty_points),
+#         "posting_date": nowdate(),
+#     }
 
-    # --- Set posting date if provided ---
-    if posting_date:
-        try:
-            invoice_doc_data["posting_date"] = getdate(posting_date)
-            invoice_doc_data["set_posting_time"] = 1
-        except Exception as e:
-            return {"error": f"Invalid posting date: {posting_date}. Error: {str(e)}"}
+#     # --- Set posting date if provided ---
+#     if posting_date:
+#         try:
+#             invoice_doc_data["posting_date"] = getdate(posting_date)
+#             invoice_doc_data["set_posting_time"] = 1
+#         except Exception as e:
+#             return {"error": f"Invalid posting date: {posting_date}. Error: {str(e)}"}
 
-    if is_pos:
-        invoice_doc_data["pos_profile"] = pos_profile
+#     if is_pos:
+#         invoice_doc_data["pos_profile"] = pos_profile
 
-    # --- Coupon discount ---
-    if coupon_code:
-        discount_doc = frappe.get_all(
-            "Coupon Code",
-            filters={"custom_company": company, "name": coupon_code},
-            fields=["custom_discount_account", "custom_discount_amount", "custom_discount_percent"]
-        )
-        if discount_doc:
-            disc = discount_doc[0]
-            if disc.get("custom_discount_account"):
-                invoice_doc_data["additional_discount_account"] = disc["custom_discount_account"]
-            if flt(disc.get("custom_discount_amount") or 0) > 0:
-                invoice_doc_data["discount_amount"] = flt(disc["custom_discount_amount"])
-            elif flt(disc.get("custom_discount_percent") or 0) > 0:
-                invoice_doc_data["additional_discount_percentage"] = flt(disc["custom_discount_percent"])
-            invoice_doc_data["custom_coupon_code"] = str(coupon_code)
+#     # --- Coupon discount ---
+#     if coupon_code:
+#         discount_doc = frappe.get_all(
+#             "Coupon Code",
+#             filters={"custom_company": company, "name": coupon_code},
+#             fields=["custom_discount_account", "custom_discount_amount", "custom_discount_percent"]
+#         )
+#         if discount_doc:
+#             disc = discount_doc[0]
+#             if disc.get("custom_discount_account"):
+#                 invoice_doc_data["additional_discount_account"] = disc["custom_discount_account"]
+#             if flt(disc.get("custom_discount_amount") or 0) > 0:
+#                 invoice_doc_data["discount_amount"] = flt(disc["custom_discount_amount"])
+#             elif flt(disc.get("custom_discount_percent") or 0) > 0:
+#                 invoice_doc_data["additional_discount_percentage"] = flt(disc["custom_discount_percent"])
+#             invoice_doc_data["custom_coupon_code"] = str(coupon_code)
 
-    # --- Insert and Submit with Retry ---
-    MAX_RETRIES = 3
-    for attempt in range(MAX_RETRIES):
-        try:
-            invoice_doc = frappe.get_doc(invoice_doc_data)
-            invoice_doc.insert()
-            invoice_doc.submit()
-            frappe.db.commit()
-            return invoice_doc
-        except Exception as e:
-            frappe.db.rollback()
-            msg = str(e)
-            if ("Lock wait timeout" in msg or "deadlock" in msg.lower()) and attempt < MAX_RETRIES - 1:
-                time.sleep(0.4)
-                continue
-            frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
-            return {"error": f"Invoice creation halted: {str(e)}", "status": "not_posted"}
+#     # --- Insert and Submit with Retry ---
+#     MAX_RETRIES = 3
+#     for attempt in range(MAX_RETRIES):
+#         try:
+#             invoice_doc = frappe.get_doc(invoice_doc_data)
+#             invoice_doc.insert()
+#             invoice_doc.submit()
+#             frappe.db.commit()
+#             return invoice_doc
+#         except Exception as e:
+#             frappe.db.rollback()
+#             msg = str(e)
+#             if ("Lock wait timeout" in msg or "deadlock" in msg.lower()) and attempt < MAX_RETRIES - 1:
+#                 time.sleep(0.4)
+#                 continue
+#             frappe.log_error(frappe.get_traceback(), "Invoice Submit Error")
+#             return {"error": f"Invoice creation halted: {str(e)}", "status": "not_posted"}

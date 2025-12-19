@@ -1,11 +1,12 @@
 import frappe
 
 @frappe.whitelist()
-def get_gormpos_invoices_with_same_remarks(remarks=None, from_date=None, to_date=None):
+def get_gormpos_invoices_with_same_remarks(remarks=None, from_date=None, to_date=None, cost_center=None):
     """
     Fetch submitted, non-return GormPos invoices.
     - Optional filter by remarks
     - Optional filter by posting date between from_date and to_date
+    - Optional filter by cost_center
     - If no remarks → return invoices with duplicate remarks only
     - Also returns count per Cost Center (high to low)
     """
@@ -18,18 +19,19 @@ def get_gormpos_invoices_with_same_remarks(remarks=None, from_date=None, to_date
 
     params = {}
 
-    # Optional remarks filter
+    # Optional filters
     if remarks:
         conditions += " AND si.remarks = %(remarks)s"
         params["remarks"] = remarks
-
-    # Optional date range filter
     if from_date:
         conditions += " AND si.posting_date >= %(from_date)s"
         params["from_date"] = from_date
     if to_date:
         conditions += " AND si.posting_date <= %(to_date)s"
         params["to_date"] = to_date
+    if cost_center:
+        conditions += " AND si.cost_center = %(cost_center)s"
+        params["cost_center"] = cost_center
 
     # ---------- INVOICE QUERY ----------
     if remarks:
@@ -66,8 +68,8 @@ def get_gormpos_invoices_with_same_remarks(remarks=None, from_date=None, to_date
                     AND custom_from = 'GormPos'
                     AND remarks IS NOT NULL
                     AND remarks != ''
-            GROUP BY remarks
-            HAVING COUNT(*) > 1
+                GROUP BY remarks
+                HAVING COUNT(*) > 1
             )
             SELECT
                 si.name,
