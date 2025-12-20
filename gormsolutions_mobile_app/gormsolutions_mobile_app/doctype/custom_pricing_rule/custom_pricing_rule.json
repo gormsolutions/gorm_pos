@@ -17,33 +17,59 @@
   "column_break_7",
   "items",
   "item_groups",
+  "brands",
+  "mixed_conditions",
+  "is_cumulative",
+  "coupon_code_based",
   "section_break_18",
   "apply_rule_on_other",
   "column_break_17",
-  "item_code",
+  "other_item_code",
   "other_item_group",
+  "other_brand",
   "section_break_7",
   "selling",
+  "buying",
   "column_break_11",
   "applicable_for",
   "customer",
   "customer_group",
+  "territory",
+  "sales_partner",
+  "campaign",
+  "supplier",
+  "supplier_group",
   "section_break_19",
   "min_qty",
   "max_qty",
   "column_break_21",
   "min_amt",
   "max_amt",
+  "product_discount_scheme_section",
+  "same_item",
+  "free_item",
+  "free_qty",
+  "free_item_rate",
+  "column_break_42",
+  "free_item_uom",
+  "round_free_qty",
+  "dont_enforce_free_item_qty",
+  "is_recursive",
+  "recurse_for",
+  "apply_recursion_over",
   "section_break_23",
   "valid_from",
   "valid_upto",
   "col_break1",
   "company",
   "currency",
+  "margin",
+  "margin_type",
+  "column_break_33",
+  "margin_rate_or_amount",
   "price_discount_scheme_section",
   "rate_or_discount",
   "apply_discount_on",
-  "discount_account",
   "col_break2",
   "rate",
   "discount_amount",
@@ -444,22 +470,192 @@
    "read_only": 1
   },
   {
-   "fieldname": "discount_account",
-   "fieldtype": "Link",
-   "label": "Discount Account",
-   "options": "Account"
+   "depends_on": "eval:doc.apply_on == 'Brand'",
+   "fieldname": "brands",
+   "fieldtype": "Table",
+   "label": "Apply Rule On Brand",
+   "options": "Pricing Rule Brand"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.apply_on != 'Transaction'",
+   "description": "Conditions will be applied on all the selected items combined. ",
+   "fieldname": "mixed_conditions",
+   "fieldtype": "Check",
+   "label": "Mixed Conditions"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_cumulative",
+   "fieldtype": "Check",
+   "label": "Is Cumulative"
+  },
+  {
+   "default": "0",
+   "fieldname": "coupon_code_based",
+   "fieldtype": "Check",
+   "label": "Coupon Code Based"
   },
   {
    "depends_on": "eval:doc.apply_rule_on_other == 'Item Code'",
-   "fieldname": "item_code",
+   "fieldname": "other_item_code",
    "fieldtype": "Link",
    "label": "Item Code",
    "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.apply_rule_on_other == 'Brand'",
+   "fieldname": "other_brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "default": "0",
+   "fieldname": "buying",
+   "fieldtype": "Check",
+   "label": "Buying"
+  },
+  {
+   "depends_on": "eval:doc.applicable_for==\"Territory\"",
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Territory",
+   "options": "Territory"
+  },
+  {
+   "depends_on": "eval:doc.applicable_for==\"Sales Partner\"",
+   "fieldname": "sales_partner",
+   "fieldtype": "Link",
+   "label": "Sales Partner",
+   "options": "Sales Partner"
+  },
+  {
+   "depends_on": "eval:doc.applicable_for==\"Campaign\"",
+   "fieldname": "campaign",
+   "fieldtype": "Link",
+   "label": "Campaign",
+   "options": "Campaign"
+  },
+  {
+   "depends_on": "eval:doc.applicable_for==\"Supplier\"",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "depends_on": "eval:doc.applicable_for==\"Supplier Group\"",
+   "fieldname": "supplier_group",
+   "fieldtype": "Link",
+   "label": "Supplier Group",
+   "options": "Supplier Group"
+  },
+  {
+   "depends_on": "eval:doc.price_or_product_discount == 'Product'",
+   "fieldname": "product_discount_scheme_section",
+   "fieldtype": "Section Break",
+   "label": "Product Discount Scheme"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:!doc.mixed_conditions && doc.apply_on != 'Transaction'",
+   "fieldname": "same_item",
+   "fieldtype": "Check",
+   "label": "Same Item"
+  },
+  {
+   "depends_on": "eval:(!doc.same_item || doc.apply_on == 'Transaction') || doc.mixed_conditions",
+   "fieldname": "free_item",
+   "fieldtype": "Link",
+   "label": "Free Item",
+   "options": "Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "free_qty",
+   "fieldtype": "Float",
+   "label": "Qty"
+  },
+  {
+   "description": "If rate is zero then item will be treated as \"Free Item\"",
+   "fieldname": "free_item_rate",
+   "fieldtype": "Currency",
+   "label": "Free Item Rate"
+  },
+  {
+   "fieldname": "column_break_42",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "free_item_uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "default": "0",
+   "fieldname": "round_free_qty",
+   "fieldtype": "Check",
+   "label": "Round Free Qty"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.price_or_product_discount == 'Product'",
+   "fieldname": "dont_enforce_free_item_qty",
+   "fieldtype": "Check",
+   "label": "Don't Enforce Free Item Qty"
+  },
+  {
+   "default": "0",
+   "description": "Discounts to be applied in sequential ranges like buy 1 get 1, buy 2 get 2, buy 3 get 3 and so on",
+   "fieldname": "is_recursive",
+   "fieldtype": "Check",
+   "label": "Is Recursive"
+  },
+  {
+   "depends_on": "is_recursive",
+   "description": "Give free item for every N quantity",
+   "fieldname": "recurse_for",
+   "fieldtype": "Float",
+   "label": "Recurse Every (As Per Transaction UOM)",
+   "mandatory_depends_on": "is_recursive"
+  },
+  {
+   "default": "0",
+   "depends_on": "is_recursive",
+   "description": "Qty for which recursion isn't applicable.",
+   "fieldname": "apply_recursion_over",
+   "fieldtype": "Float",
+   "label": "Apply Recursion Over (As Per Transaction UOM)"
+  },
+  {
+   "fieldname": "margin",
+   "fieldtype": "Section Break",
+   "label": "Margin"
+  },
+  {
+   "default": "Percentage",
+   "fieldname": "margin_type",
+   "fieldtype": "Select",
+   "label": "Margin Type",
+   "options": "\nPercentage\nAmount"
+  },
+  {
+   "fieldname": "column_break_33",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.margin_type",
+   "fieldname": "margin_rate_or_amount",
+   "fieldtype": "Float",
+   "label": "Margin Rate or Amount"
   }
  ],
  "icon": "fa fa-gift",
  "links": [],
- "modified": "2025-10-27 21:54:57.492869",
+ "modified": "2025-12-20 02:46:23.632228",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Custom Pricing Rule",
