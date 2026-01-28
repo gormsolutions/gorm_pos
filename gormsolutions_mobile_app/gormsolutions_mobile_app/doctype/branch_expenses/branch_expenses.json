@@ -109,7 +109,7 @@
    "reqd": 1
   },
   {
-   "default": "2110 - Creditors - AEL",
+   "default": "2170 - Creditors - SD",
    "fieldname": "account",
    "fieldtype": "Link",
    "label": "account",
@@ -119,7 +119,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-06 11:36:51.170613",
+ "modified": "2025-11-09 22:38:42.963517",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Branch Expenses",

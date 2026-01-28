@@ -7,6 +7,7 @@ def get_stock_qty(cost_center=None):
     and fallback to the valuation rate from the Bin table if no buying price exists.
     Ensure the buying price is fetched only if the stock_uom matches the uom in the Item Price.
     Optionally filter by cost center and restrict to the warehouse 'Main Store Kumi Road - SD'.
+    Disabled items are filtered out.
     """
     # Base query
     query = """
@@ -18,18 +19,18 @@ def get_stock_qty(cost_center=None):
                  FROM `tabItem Price` 
                  WHERE `tabItem Price`.item_code = bin.item_code 
                  AND `tabItem Price`.price_list = 'Standard Buying'
-                 AND `tabItem Price`.uom = item.stock_uom  -- Ensure stock_uom matches uom in Item Price
+                 AND `tabItem Price`.uom = item.stock_uom
                  ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
                  LIMIT 1),
-                bin.valuation_rate  -- Fallback to valuation_rate from Bin if no buying price exists
-            ) AS valuation_rate,  -- Use buying price if available, otherwise fallback to Bin valuation_rate
+                bin.valuation_rate
+            ) AS valuation_rate,
             (SELECT price_list_rate
              FROM `tabItem Price` 
              WHERE `tabItem Price`.item_code = bin.item_code 
              AND `tabItem Price`.price_list = 'Standard Selling'
-             AND `tabItem Price`.uom = item.stock_uom  -- Ensure stock_uom matches uom in Item Price
+             AND `tabItem Price`.uom = item.stock_uom
              ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
-             LIMIT 1) AS selling_price,  -- Fetch the Standard Selling price
+             LIMIT 1) AS selling_price,
             item.stock_uom AS uom
         FROM 
             `tabBin` AS bin
@@ -39,12 +40,13 @@ def get_stock_qty(cost_center=None):
             `tabWarehouse` AS warehouse ON bin.warehouse = warehouse.name
         WHERE 
             warehouse.name = %s
+            AND item.disabled = 0
     """
 
     # Parameters for the query
     params = ["Main Store Kumi Road - SD"]
 
-    # Add an optional filter for cost_center if provided
+    # Optional filter for cost_center
     if cost_center:
         query += " AND warehouse.custom_cost_centre = %s"
         params.append(cost_center)
@@ -298,5 +300,57 @@ def get_stock_qty_roots(cost_center=None):
     # Optional warehouse filter (only include 'Stores - RL' bins if exists)
     query += " AND (warehouse.name = %s OR warehouse.name IS NULL)"
     params.append("Stores - RL")
+    stock_qty = frappe.db.sql(query, params, as_dict=True)
+    return stock_qty
+
+@frappe.whitelist()
+def get_stock_qty_omacom(cost_center=None):
+    """
+    Fetch stock quantity and prices for each item in each warehouse.
+    Excludes items that have no warehouse (NULL warehouse).
+    """
+    query = """
+        SELECT 
+            item.name AS item_code,
+            warehouse.name AS warehouse,
+            COALESCE(bin.actual_qty, 0) AS actual_qty,
+            COALESCE(
+                (SELECT price_list_rate
+                 FROM `tabItem Price`
+                 WHERE `tabItem Price`.item_code = item.name
+                   AND `tabItem Price`.price_list = 'Standard Buying'
+                   AND `tabItem Price`.uom = item.stock_uom
+                 ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+                 LIMIT 1),
+                COALESCE(bin.valuation_rate, 0)
+            ) AS valuation_rate,
+            (SELECT price_list_rate
+             FROM `tabItem Price`
+             WHERE `tabItem Price`.item_code = item.name
+               AND `tabItem Price`.price_list = 'Standard Selling'
+               AND `tabItem Price`.uom = item.stock_uom
+             ORDER BY `tabItem Price`.valid_from DESC, `tabItem Price`.creation DESC
+             LIMIT 1) AS selling_price,
+            item.stock_uom AS uom
+        FROM 
+            `tabItem` AS item
+        LEFT JOIN 
+            `tabBin` AS bin ON bin.item_code = item.name
+        LEFT JOIN 
+            `tabWarehouse` AS warehouse ON bin.warehouse = warehouse.name
+        WHERE 
+            warehouse.name IS NOT NULL
+    """
+
+    params = []
+
+    # Optional cost center filter
+    if cost_center:
+        query += " AND (warehouse.custom_cost_centre = %s)"
+        params.append(cost_center)
+
+    # Order results by item and warehouse
+    query += " ORDER BY item.name, warehouse.name"
+
     stock_qty = frappe.db.sql(query, params, as_dict=True)
     return stock_qty

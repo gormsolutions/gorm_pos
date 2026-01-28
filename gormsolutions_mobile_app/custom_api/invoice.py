@@ -37,6 +37,44 @@ def get_invoice_details(limit, offset, search=None):
     return sales_invoice_details
 
 
+
+import frappe
+import json
+
+@frappe.whitelist(allow_guest=True)
+def get_cancelled_invoice_details(limit, offset, search=None):
+    # Initialize filters with docstatus filter
+    filters = [["docstatus", "=", 2]]
+
+    # Add a filter for the logged-in user
+   
+    # If a search term is provided, add a filter for customer_name
+    if search:
+        filters.append(["customer_name", "like", f"%{search}%"])
+
+    # Fetch filtered Sales Invoice details
+    sales_invoice_details = frappe.get_all(
+        'Sales Invoice',
+        fields=[
+            'name', 'grand_total', 'remarks','posting_date','posting_time', 'paid_amount', 'outstanding_amount',
+            'owner', 'docstatus', 'status', 'customer', 'customer_name'
+        ],
+        order_by='posting_date desc',
+        filters=filters,
+        start=offset,
+        page_length=limit
+    )
+
+    # Fetch and attach items for each invoice
+    for invoice in sales_invoice_details:
+        invoice["items"] = frappe.get_all(
+            "Sales Invoice Item",
+            fields=["item_code", "item_name", "qty", "uom","rate", "amount"],
+            filters={"parent": invoice["name"]}
+        )
+
+    return sales_invoice_details
+
 @frappe.whitelist()
 def create_invoice(customer_name, paid_amount, items,remarks=None, mode_of_payment=None,reference_no=None,user=None, is_pos=None, update_stock=None, discount_amount=0, discount_percentage=0):
     import json
@@ -235,32 +273,87 @@ def get_sales_payment_summary(start_date, end_date):
         return data
     except Exception as e:
         return {"error": str(e)}
-    
-@frappe.whitelist(allow_guest=True)
+
+import frappe
+from frappe.utils import now
+
+@frappe.whitelist(allow_guest=False)
 def cancel_invoice(name=None):
+    """
+    Cancels a submitted Sales Invoice (docstatus=1) safely.
+    Includes permission checks, rollback on error, and activity logging.
+    """
+    if not name:
+        return {
+            "status": "error",
+            "message": "Invoice name is required."
+        }
+
     try:
-        # Get the Sales Invoice document
+        # Fetch the invoice document
         invoice_doc = frappe.get_doc("Sales Invoice", name)
 
-        # Check if the invoice is already canceled
-        if invoice_doc.docstatus == 2:  # 2 represents 'Cancelled'
+        # Permission check — only allow users with cancel rights
+        if not frappe.has_permission("Sales Invoice", "cancel", invoice_doc):
             return {
-                "message": "Invoice is already canceled",
-                "status": "error"
+                "status": "error",
+                "message": "You do not have permission to cancel this invoice."
+            }
+
+        # Check current document status
+        if invoice_doc.docstatus == 2:
+            return {
+                "status": "error",
+                "message": f"Invoice {name} is already canceled."
+            }
+
+        if invoice_doc.docstatus != 1:
+            return {
+                "status": "error",
+                "message": f"Invoice {name} is not submitted and cannot be canceled."
             }
 
         # Cancel the invoice
         invoice_doc.cancel()
 
+        # Commit transaction
+        frappe.db.commit()
+
+        # Log cancellation in system log
+        frappe.logger("sales_invoice").info({
+            "action": "cancel_invoice",
+            "invoice": name,
+            "user": frappe.session.user,
+            "timestamp": now()
+        })
+
         return {
-            "message": f"Invoice {name} has been canceled",
-            "status": "success"
+            "status": "success",
+            "message": f"Invoice {name} has been successfully canceled."
         }
+
+    except frappe.DoesNotExistError:
+        frappe.db.rollback()
+        return {
+            "status": "error",
+            "message": f"Invoice {name} does not exist."
+        }
+
+    except frappe.ValidationError as ve:
+        frappe.db.rollback()
+        return {
+            "status": "error",
+            "message": f"Validation Error: {str(ve)}"
+        }
+
     except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(message=str(e), title="Cancel Invoice Error")
         return {
-            "message": str(e),
-            "status": "error"
+            "status": "error",
+            "message": f"Failed to cancel invoice {name}: {str(e)}"
         }
+
 
 @frappe.whitelist(allow_guest=True)
 def get_sales_invoice(docname):

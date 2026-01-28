@@ -1,9 +1,6 @@
 import frappe
 from erpnext.stock.utils import get_stock_balance
 
-import frappe
-from erpnext.stock.utils import get_stock_balance
-
 @frappe.whitelist()
 def get_item_details(limit, offset, search=None, user=None):
 	"""

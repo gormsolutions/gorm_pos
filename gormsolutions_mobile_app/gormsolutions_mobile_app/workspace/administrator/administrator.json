@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"HnBn1Aslc7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">ADMINISTRATOR</span>\",\"col\":12}},{\"id\":\"G3gNI9IWIp\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"JLLtN6h_KJ\",\"type\":\"card\",\"data\":{\"card_name\":\"Selling\",\"col\":4}},{\"id\":\"2CadYITOhF\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying\",\"col\":4}},{\"id\":\"pP85bgS01i\",\"type\":\"card\",\"data\":{\"card_name\":\"Expenses\",\"col\":4}},{\"id\":\"eBZU0ImWSC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Transfers\",\"col\":3}},{\"id\":\"N80x11VN20\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Settings</b></span>\",\"col\":12}},{\"id\":\"i2DMT6dw2n\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Person Targets\",\"col\":3}},{\"id\":\"t-MRxGxA69\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase And Return Settings\",\"col\":3}},{\"id\":\"DgXI1hl6O7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"idPOl8vc9e\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item Wise Register\",\"col\":3}},{\"id\":\"wF7kJlkd8D\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payable Summery\",\"col\":3}},{\"id\":\"rbqjyLc2eK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables\",\"col\":3}},{\"id\":\"mLreye49og\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables Summery\",\"col\":3}},{\"id\":\"KfyHBnekHa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Register\",\"col\":3}},{\"id\":\"vuVm4Gm0UB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payables\",\"col\":3}},{\"id\":\"-1P2dmhci5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balances\",\"col\":3}}]",
+ "content": "[{\"id\":\"HnBn1Aslc7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">ADMINISTRATOR</span>\",\"col\":12}},{\"id\":\"G3gNI9IWIp\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"JLLtN6h_KJ\",\"type\":\"card\",\"data\":{\"card_name\":\"Selling\",\"col\":4}},{\"id\":\"2CadYITOhF\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying\",\"col\":4}},{\"id\":\"pP85bgS01i\",\"type\":\"card\",\"data\":{\"card_name\":\"Expenses\",\"col\":4}},{\"id\":\"eBZU0ImWSC\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Transfers\",\"col\":3}},{\"id\":\"7nvSqbCHG8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Daily Expenses\",\"col\":3}},{\"id\":\"d4FasfeEUx\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Cash Transfer\",\"col\":3}},{\"id\":\"N80x11VN20\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Settings</b></span>\",\"col\":12}},{\"id\":\"i2DMT6dw2n\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Person Targets\",\"col\":3}},{\"id\":\"t-MRxGxA69\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase And Return Settings\",\"col\":3}},{\"id\":\"DgXI1hl6O7\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"idPOl8vc9e\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item Wise Register\",\"col\":3}},{\"id\":\"wF7kJlkd8D\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payable Summery\",\"col\":3}},{\"id\":\"rbqjyLc2eK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables\",\"col\":3}},{\"id\":\"mLreye49og\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Receivables Summery\",\"col\":3}},{\"id\":\"KfyHBnekHa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Register\",\"col\":3}},{\"id\":\"vuVm4Gm0UB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payables\",\"col\":3}},{\"id\":\"-1P2dmhci5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balances\",\"col\":3}}]",
  "creation": "2025-08-24 17:16:54.499435",
  "custom_blocks": [],
  "docstatus": 0,
@@ -191,7 +191,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-08-30 17:38:28.232374",
+ "modified": "2025-12-11 15:51:15.621064",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "ADMINISTRATOR",
@@ -201,8 +201,15 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 39.0,
+ "sequence_id": 2.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Daily Expenses",
+   "link_to": "Daily Expenses",
+   "type": "Report"
+  },
   {
    "color": "Grey",
    "doc_view": "List",
@@ -266,6 +273,14 @@
    "label": "Item Wise Register",
    "type": "URL",
    "url": "https://ashlink.gorm.cloud/app/query-report/Item-wise%20Sales%20Register?from_date=2025-07-24&to_date=2025-08-24&company=ASHLINK+ENTERPRISE+"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Cash Transfer",
+   "link_to": "Payment Entry",
+   "stats_filter": "[[\"Payment Entry\",\"payment_type\",\"=\",\"Internal Transfer\",false],[\"Payment Entry\",\"paid_from\",\"=\",\"1110 - Cash - AEL\",false],[\"Payment Entry\",\"paid_to\",\"=\",\"Equity - AEL\",false]]",
+   "type": "DocType"
   },
   {
    "color": "Grey",

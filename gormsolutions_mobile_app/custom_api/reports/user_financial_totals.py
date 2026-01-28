@@ -9,7 +9,7 @@ def get_user_financial_totals(user_email, from_date, to_date):
     # Branch Expenses created by this user (only submitted)
     branch_expenses = frappe.db.sql("""
         SELECT 
-            name, mode_of_payment, grand_total, date, owner AS created_by
+            name, mode_of_payment, station, grand_total, date, owner AS created_by
         FROM `tabBranch Expenses`
         WHERE docstatus = 1 AND owner=%s AND date BETWEEN %s AND %s
     """, (user_email, from_date, to_date), as_dict=True)
@@ -32,7 +32,7 @@ def get_user_financial_totals(user_email, from_date, to_date):
     # Payment Entries grouped by type and mode/account
     payment_entries = frappe.db.sql("""
         SELECT 
-            name, party, paid_amount, payment_type, mode_of_payment, paid_from, paid_to, posting_date, owner AS created_by
+            name, party, paid_amount, payment_type, mode_of_payment, paid_from, cost_center, paid_to, posting_date, owner AS created_by
         FROM `tabPayment Entry`
         WHERE docstatus = 1 AND owner=%s AND posting_date BETWEEN %s AND %s
     """, (user_email, from_date, to_date), as_dict=True)
@@ -60,7 +60,7 @@ def get_user_financial_totals(user_email, from_date, to_date):
     # Sales Invoices created by this user (only submitted)
     sales_invoices = frappe.db.sql("""
         SELECT 
-            name, customer, rounded_total, outstanding_amount, paid_amount, posting_date, posting_time, owner AS created_by
+            name, customer, rounded_total, outstanding_amount, cost_cenetr paid_amount, posting_date, posting_time, owner AS created_by
         FROM `tabSales Invoice`
         WHERE docstatus = 1 AND owner=%s AND posting_date BETWEEN %s AND %s
     """, (user_email, from_date, to_date), as_dict=True)
