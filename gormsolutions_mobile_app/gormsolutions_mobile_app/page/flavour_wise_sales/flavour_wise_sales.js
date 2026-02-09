@@ -39,7 +39,7 @@ frappe.pages['flavour-wise-sales'].on_page_load = function(wrapper) {
         change: reload_items
     });
 
-    // Populate flavour options dynamically
+    // Populate flavour options dynamically 
     frappe.call({
         method: "gormsolutions_mobile_app.custom_api.reports.item_flavour_sales.get_flavour_values",
         callback: function(r) {

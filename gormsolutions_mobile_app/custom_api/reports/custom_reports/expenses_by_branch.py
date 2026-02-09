@@ -85,20 +85,19 @@ def get_expenses_pnl_style(from_date=None, to_date=None, cost_center=None, compa
     from_date = getdate(from_date) if from_date else None
     to_date = getdate(to_date) if to_date else None
 
-    # Step 1: Get all accounts to exclude (parent + children)
+    # Step 1: Excluded accounts
     excluded_parent = "5110000 - Stock Expenses - DC"
     excluded_accounts = ["30000 - COGS - DIRECT BY PRODUCT - DC", excluded_parent]
-
-    # Include all children of excluded parent
     children = frappe.get_all("Account", filters={"parent_account": excluded_parent}, pluck="name")
     excluded_accounts.extend(children)
 
     # Step 2: Build conditions
     conditions = ["gle.is_cancelled = 0", "acc.root_type = 'Expense'"]
+    values = []
+
     if excluded_accounts:
         conditions.append("acc.name NOT IN ({})".format(", ".join(["%s"]*len(excluded_accounts))))
-
-    values = excluded_accounts.copy()
+        values.extend(excluded_accounts)
 
     if from_date:
         conditions.append("gle.posting_date >= %s")
@@ -115,34 +114,40 @@ def get_expenses_pnl_style(from_date=None, to_date=None, cost_center=None, compa
 
     condition_str = " AND ".join(conditions)
 
-    # Step 3: Fetch accounts with totals
+    # Step 3: Fetch data grouped by account + cost center
     query = f"""
         SELECT
             acc.name AS account,
             acc.account_name,
             acc.parent_account,
+            gle.cost_center,
             acc.is_group,
             SUM(gle.debit - gle.credit) AS amount
         FROM `tabGL Entry` gle
         JOIN `tabAccount` acc ON acc.name = gle.account
         WHERE {condition_str}
-        GROUP BY acc.name, acc.account_name, acc.parent_account, acc.is_group
+        GROUP BY acc.name, acc.account_name, acc.parent_account, gle.cost_center, acc.is_group
         ORDER BY acc.account_name
     """
 
     data = frappe.db.sql(query, values, as_dict=True)
 
-    # Step 4: Build tree structure
-    account_map = {d['account']: {**d, 'children': []} for d in data}
-    roots = []
-
+    # Step 4: Build tree grouped by account + cost center
+    account_map = {}
     for d in data:
-        parent = d.get('parent_account')
-        if parent and parent in account_map:
-            account_map[parent]['children'].append(account_map[d['account']])
-        else:
-            roots.append(account_map[d['account']])
+        key = (d['account'], d['cost_center'])
+        account_map[key] = {**d, 'children': []}
 
+    # Build parent-child relationships for each cost center separately
+    roots = []
+    for key, node in account_map.items():
+        parent_key = (node['parent_account'], node['cost_center'])
+        if node['parent_account'] and parent_key in account_map:
+            account_map[parent_key]['children'].append(node)
+        else:
+            roots.append(node)
+
+    # Step 5: Compute totals recursively
     def compute_totals(node):
         if node['children']:
             node['amount'] = sum([compute_totals(c) for c in node['children']])
@@ -151,12 +156,13 @@ def get_expenses_pnl_style(from_date=None, to_date=None, cost_center=None, compa
     for r in roots:
         compute_totals(r)
 
-    # Step 5: Flatten tree for front-end
+    # Step 6: Flatten tree
     def flatten(node, level=0, res=[]):
         res.append({
             'account': node['account'],
             'account_name': node['account_name'],
             'parent_account': node['parent_account'],
+            'cost_center': node['cost_center'],
             'is_group': node['is_group'],
             'amount': node['amount'],
             'level': level
@@ -169,5 +175,6 @@ def get_expenses_pnl_style(from_date=None, to_date=None, cost_center=None, compa
     for r in roots:
         flatten(r, 0, flat_result)
 
-    # Step 6: Remove zero-amount accounts
+    # Step 7: Remove zero-amount accounts
     return [d for d in flat_result if d['amount'] != 0]
+

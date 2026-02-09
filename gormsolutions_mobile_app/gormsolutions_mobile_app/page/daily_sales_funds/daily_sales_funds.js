@@ -121,7 +121,7 @@ frappe.pages['daily-sales-funds'].on_page_load = function(wrapper) {
         if (!filters.company || !filters.company.get_value()) return;
 
         if (!load_more) {
-            current_start = 0;
+            current_start = 0; 
             $tbody.empty();
             $('#total-inflows').text('0.00');
         }
