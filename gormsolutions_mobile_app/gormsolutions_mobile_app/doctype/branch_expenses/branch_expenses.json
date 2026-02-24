@@ -9,10 +9,10 @@
   "naming_series",
   "station",
   "employee",
-  "employee_name",
   "column_break_aidj",
   "date",
   "mode_of_payment",
+  "employee_name",
   "section_break_oeao",
   "items",
   "grand_total",
@@ -40,7 +40,7 @@
    "label": "Total Amount"
   },
   {
-   "default": "Main - AEL",
+   "default": "Main - BGTL",
    "fieldname": "station",
    "fieldtype": "Link",
    "in_filter": 1,
@@ -94,7 +94,7 @@
    "label": "Setting"
   },
   {
-   "default": "ASHLINK ENTERPRISE LTD",
+   "default": "Bunyasi General Traders Ltd",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
@@ -109,7 +109,7 @@
    "reqd": 1
   },
   {
-   "default": "2170 - Creditors - SD",
+   "default": "2110 - Creditors - BGTL",
    "fieldname": "account",
    "fieldtype": "Link",
    "label": "account",
@@ -119,7 +119,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-09 22:38:42.963517",
+ "modified": "2026-01-30 13:32:32.788603",
  "modified_by": "Administrator",
  "module": "Gormsolutions Mobile App",
  "name": "Branch Expenses",

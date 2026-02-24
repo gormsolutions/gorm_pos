@@ -91,3 +91,23 @@ def sign_up(first_name, email, password):
     return {
         "message": _("User created successfully.")
     }
+
+    import frappe
+@frappe.whitelist(allow_guest=True)
+def fetch_users():
+    users = frappe.get_all(
+        "User",
+        fields=[
+            "name",
+            "email",
+            "user_permisions",
+            "full_name"
+           
+        ],
+        filters={
+            "enabled": 1
+        }
+    )
+
+    return users
+

@@ -308,6 +308,7 @@ def get_stock_qty_omacom(cost_center=None):
     """
     Fetch stock quantity and prices for each item in each warehouse.
     Excludes items that have no warehouse (NULL warehouse).
+    Omits disabled items.
     """
     query = """
         SELECT 
@@ -340,6 +341,7 @@ def get_stock_qty_omacom(cost_center=None):
             `tabWarehouse` AS warehouse ON bin.warehouse = warehouse.name
         WHERE 
             warehouse.name IS NOT NULL
+            AND item.disabled = 0
     """
 
     params = []

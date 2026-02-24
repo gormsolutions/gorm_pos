@@ -60,7 +60,7 @@ def get_user_financial_totals(user_email, from_date, to_date):
     # Sales Invoices created by this user (only submitted)
     sales_invoices = frappe.db.sql("""
         SELECT 
-            name, customer, rounded_total, outstanding_amount, cost_cenetr paid_amount, posting_date, posting_time, owner AS created_by
+            name, customer, rounded_total, outstanding_amount, cost_center, paid_amount, posting_date, posting_time, owner AS created_by
         FROM `tabSales Invoice`
         WHERE docstatus = 1 AND owner=%s AND posting_date BETWEEN %s AND %s
     """, (user_email, from_date, to_date), as_dict=True)

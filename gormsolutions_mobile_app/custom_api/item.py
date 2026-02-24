@@ -1129,3 +1129,61 @@ def get_item_details_ashlink_buying(limit, offset, search=None, user=None):
             item["serial_nos"] = []
 
     return item_details
+
+
+
+
+@frappe.whitelist()
+def get_fleet_items(search=None):
+	"""
+	Fetch all Fleet service items with selling price.
+	No stock, no UOM, no pagination.
+	"""
+
+	# Fleet item group + children
+	fleet_groups = frappe.get_all(
+		"Item Group",
+		filters={"parent_item_group": "Fleet"},
+		pluck="name"
+	)
+	fleet_groups.append("Fleet")
+
+	# Filters
+	filters = [
+		["disabled", "=", 0],
+		["is_sales_item", "=", 1],
+		["is_stock_item", "=", 0],  # Service items
+		["has_variants", "=", 0],
+		["item_group", "in", fleet_groups],
+	]
+
+	if search:
+		filters.append(["item_name", "like", f"%{search}%"])
+
+	# Fetch items
+	items = frappe.get_all(
+		"Item",
+		filters=filters,
+		fields=[
+			"item_code",
+			"item_name",
+				"description",
+			"item_group",
+			"image",
+		],
+	)
+
+	# Attach selling price
+	for item in items:
+		item["price"] = frappe.get_value(
+			"Item Price",
+			{
+				"item_code": item["item_code"],
+				"selling": 1,
+			},
+			"price_list_rate",
+		) or 0.0
+
+	
+
+	return items

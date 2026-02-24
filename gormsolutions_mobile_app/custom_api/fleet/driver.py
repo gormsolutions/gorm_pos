@@ -1,42 +1,109 @@
+# import frappe
+# import json
+
+# @frappe.whitelist()
+# def create_driver(data):
+#     """
+#     Dynamic Driver creator
+#     Accepts ONLY `data` as dict or JSON string
+#     """
+
+#     # Parse JSON if needed
+#     if isinstance(data, str):
+#         data = json.loads(data)
+
+#     try:
+#         # Ensure doctype is Driver
+#         data["doctype"] = "Driver"
+
+#         # Create document dynamically
+#         doc = frappe.get_doc(data)
+
+#         # Insert document
+#         doc.insert(ignore_permissions=True)
+#         frappe.db.commit()
+
+#         return {
+#             "status": "success",
+#             "name": doc.name
+#         }
+
+#     except Exception as e:
+#         frappe.log_error(
+#             frappe.get_traceback(),
+#             "Dynamic Driver Creation Failed"
+#         )
+#         return {
+#             "status": "error",
+#             "message": str(e)
+#         }
+
 import frappe
 import json
 
 @frappe.whitelist()
 def create_driver(data):
     """
-    Dynamic Driver creator
-    Accepts ONLY `data` as dict or JSON string
+    Creates Employee first (if needed)
+    Then creates Driver linked to Employee
+    Accepts ONLY `data`
     """
 
-    # Parse JSON if needed
     if isinstance(data, str):
         data = json.loads(data)
 
     try:
-        # Ensure doctype is Driver
         data["doctype"] = "Driver"
 
-        # Create document dynamically
-        doc = frappe.get_doc(data)
+        # -----------------------------
+        # 1️⃣ CREATE EMPLOYEE FIRST
+        # -----------------------------
+        employee_name = data.get("employee")
 
-        # Insert document
-        doc.insert(ignore_permissions=True)
+        if not employee_name:
+            employee_doc = frappe.get_doc({
+                "doctype": "Employee",
+                "first_name": data.get("full_name"),
+                "employee_name": data.get("full_name"),
+                "status": "Active",
+                "gender": "Male",
+                "date_of_birth": data.get("date_of_birth") or "1995-05-10",
+                "cell_number": data.get("cell_number"),
+                "date_of_joining": frappe.utils.nowdate(),
+                "company": frappe.defaults.get_user_default("Company")
+            })
+
+            employee_doc.insert(ignore_permissions=True)
+            employee_name = employee_doc.name
+
+        # Attach employee to driver
+        data["employee"] = employee_name
+
+        # -----------------------------
+        # 2️⃣ CREATE DRIVER
+        # -----------------------------
+        driver_doc = frappe.get_doc(data)
+        driver_doc.insert(ignore_permissions=True)
+
         frappe.db.commit()
 
         return {
             "status": "success",
-            "name": doc.name
+            "employee": employee_name,
+            "driver": driver_doc.name
         }
 
-    except Exception as e:
+    except Exception:
         frappe.log_error(
             frappe.get_traceback(),
-            "Dynamic Driver Creation Failed"
+            "Driver & Employee Creation Failed"
         )
+
         return {
             "status": "error",
-            "message": str(e)
+            "message": frappe.get_traceback()
         }
+
 
 import frappe
 

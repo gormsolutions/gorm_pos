@@ -2,7 +2,7 @@ import frappe
 import json
 
 @frappe.whitelist(allow_guest=True)
-def create_payment(sales_invoice,mode_of_payment,paid_amount):
+def create_payment(sales_invoice,mode_of_payment,paid_amount,remarks=None):
     mode_of_pay_doc = frappe.get_doc("Mode of Payment",mode_of_payment)
     sales_invoice_doc = frappe.get_doc("Sales Invoice",sales_invoice)
     # return mode_of_pay_doc.accounts[0].default_account,sales_invoice.customer
@@ -14,6 +14,8 @@ def create_payment(sales_invoice,mode_of_payment,paid_amount):
             "party_type":"Customer",
             "party":sales_invoice_doc.customer,
             "mode_of_payment":mode_of_payment,
+            "remarks": remarks if remarks else "",
+            "custom_remarks": 1,
             "paid_to":mode_of_pay_doc.accounts[0].default_account,
             "paid_amount":paid_amount,
             "received_amount":paid_amount,
@@ -41,7 +43,7 @@ def create_payment(sales_invoice,mode_of_payment,paid_amount):
 @frappe.whitelist(allow_guest=True)
 def mode_of_payment():
     try:
-        # Get the current user
+        # Get the current user filters={"enabled": 1}, 
         current_user = frappe.session.user
 
         # Fetch User Permission records for 'Mode of Payment' allowed for the current user
@@ -76,16 +78,44 @@ def mode_of_payment():
         return {"error": str(e)}
 
 @frappe.whitelist()
-def recieve_payment(mode_of_payment, paid_amount, party):
+def recieve_payment(mode_of_payment, paid_amount, party,remarks=None):
     try:
         mode_of_pay_doc = frappe.get_doc("Mode of Payment", mode_of_payment)
         
         payment_doc = frappe.get_doc({
             "doctype": "Payment Entry",
             "payment_type": "Receive",
+            "remarks": remarks if remarks else "",
+            "custom_remarks": 1,
             "party_type": "Customer",
             "party": party,
-            "mode_of_payment": mode_of_payment,
+            "mode_of_payment": mode_of_payment, 
+            "paid_to": mode_of_pay_doc.accounts[0].default_account,
+            "paid_amount": paid_amount,
+            "received_amount": paid_amount
+        })
+        
+        res_doc = payment_doc.insert(ignore_permissions=True)
+        res_doc.submit()
+
+        return {"status": "Success", "message": "Payment received successfully", "paid_amount": res_doc.paid_amount}
+    except Exception as e:
+        return {"status": "Error", "message": str(e)}
+
+
+@frappe.whitelist()
+def recieve_payment_supplier(mode_of_payment, paid_amount, party,remarks=None):
+    try:
+        mode_of_pay_doc = frappe.get_doc("Mode of Payment", mode_of_payment)
+        
+        payment_doc = frappe.get_doc({
+            "doctype": "Payment Entry",
+            "payment_type": "Pay",
+            "remarks": remarks if remarks else "",
+            "custom_remarks": 1,
+            "party_type": "Supplier",
+            "party": party,
+            "mode_of_payment": mode_of_payment, 
             "paid_to": mode_of_pay_doc.accounts[0].default_account,
             "paid_amount": paid_amount,
             "received_amount": paid_amount
@@ -121,6 +151,7 @@ def get_logged_in_user_payments():
                 "posting_date",
                 "party_type",
                 "party",
+                "remarks",
                 "paid_amount",
                 "mode_of_payment",
                 "payment_type",

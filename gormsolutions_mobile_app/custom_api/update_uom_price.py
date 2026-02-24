@@ -107,3 +107,58 @@ def update_all_item_prices_uoms():
         return f"✅ Updated {len(updated)} Item Price records:\n" + "\n".join(updated)
     else:
         return "✅ No updates needed, all UOMs already correct."
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def create_or_update_item_prices_from_item():
+    updated = 0
+    created = 0
+
+    items = frappe.get_all(
+        "Item",
+        fields=["name", "over_delivery_receipt_allowance"]
+    )
+
+    for item in items:
+        if not item.over_delivery_receipt_allowance:
+            continue
+
+        item_prices = frappe.get_all(
+            "Item Price",
+            filters={"item_code": item.name},
+            fields=["name"]
+        )
+
+        # Update existing Item Prices
+        if item_prices:
+            for ip in item_prices:
+                frappe.db.set_value(
+                    "Item Price",
+                    ip.name,
+                    "price_list_rate",
+                    item.over_delivery_receipt_allowance
+                )
+                updated += 1
+
+        # OPTIONAL: Create Item Price if none exists
+        else:
+            price = frappe.new_doc("Item Price")
+            price.item_code = item.name
+            price.price_list = frappe.db.get_single_value(
+                "Selling Settings", "selling_price_list"
+            ) or "Standard Selling"
+            price.price_list_rate = item.over_delivery_receipt_allowance
+            price.insert(ignore_permissions=True)
+            created += 1
+
+    frappe.db.commit()
+
+    return _(
+        f"Item Prices processed successfully.<br>"
+        f"Updated: {updated}<br>"
+        f"Created: {created}"
+    )
+
