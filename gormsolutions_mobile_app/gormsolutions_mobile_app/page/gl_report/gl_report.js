@@ -64,6 +64,8 @@ frappe.pages["gl-report"].on_page_load = function (wrapper) {
         get_query: () => ({ filters: { company: filters.company.get_value() } })
     });
 
+    
+
     filters.cost_center = add_filter({
         label: "Cost Center", fieldtype: "Link", fieldname: "cost_center", options: "Cost Center",
         get_query: () => ({ filters: { company: filters.company.get_value() } })

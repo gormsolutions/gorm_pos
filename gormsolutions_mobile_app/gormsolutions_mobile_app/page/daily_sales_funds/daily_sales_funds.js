@@ -126,7 +126,7 @@ frappe.pages['daily-sales-funds'].on_page_load = function(wrapper) {
             $('#total-inflows').text('0.00');
         }
 
-        $('#load-more').prop('disabled', true);
+        $('#load-more').prop('disabled', true); 
         $('#loading-indicator').show();
 
         frappe.call({

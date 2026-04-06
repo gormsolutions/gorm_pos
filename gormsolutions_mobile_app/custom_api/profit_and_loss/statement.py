@@ -362,6 +362,7 @@ def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=No
         "gle.voucher_subtype != 'Internal Transfer'",
         "gle.is_cancelled = 0"
     ]
+
     if cost_center:
         conditions.append("gle.cost_center = %(cost_center)s")
     if company:
@@ -405,36 +406,51 @@ def get_grouped_profit_and_loss(from_date, to_date, cost_center=None, company=No
     }
 
     for entry in gl_entries:
-        if not entry["account"]:
+        if not entry.get("account"):
             continue
 
-        # Exclude specific account for CRAVE CITY MEGA LIMITED
-        if entry.get("company") == "CRAVE CITY MEGA LIMITED" and entry.get("parent_account") == "4100 - Direct Income - CCML":
-            continue
-
+        # ERPNext P&L ONLY considers Income & Expense
         if entry.get("root_type") not in ["Income", "Expense"]:
             continue
 
-        debit_amount = flt(entry.get("debit", 0))
-        credit_amount = flt(entry.get("credit", 0))
-        amount = debit_amount - credit_amount
+        debit = flt(entry.get("debit", 0))
+        credit = flt(entry.get("credit", 0))
 
-        # Expense
-        if entry.get("root_type") == "Expense":
-            grouped_data["Expenses"]["total"] += amount
-            grouped_data["Expenses"]["entries"].append(entry)
+        # =========================
+        # ERPNext EXACT LOGIC
+        # =========================
 
-        # Invoices
-        elif (
-            (entry.get("account_type") in ["Income Account", "Bank", "Cash"] and entry.get("root_type") != "Expense")
-            or (not entry.get("account_type") and entry.get("root_type") == "Income")
-        ):
+        # Income increases profit (credit - debit)
+        if entry.get("root_type") == "Income":
+            amount = credit - debit
+
+            # Keep your existing "Invoices" grouping
             grouped_data["Invoices"]["total"] += amount
             grouped_data["Invoices"]["entries"].append(entry)
 
-        # Other
+        # Expense increases loss (debit - credit)
+        elif entry.get("root_type") == "Expense":
+            amount = debit - credit
+
+            grouped_data["Expenses"]["total"] += amount
+            grouped_data["Expenses"]["entries"].append(entry)
+
+        # Other (rare but preserved as per your structure)
         else:
+            amount = debit - credit
+
             grouped_data["Other"]["total"] += amount
             grouped_data["Other"]["entries"].append(entry)
+
+    # =========================
+    # ERPNext-style Net Profit
+    # =========================
+    net_profit = (
+        grouped_data["Invoices"]["total"]
+        - grouped_data["Expenses"]["total"]
+    )
+
+    # Optional: normalize sign like ERPNext reports
+    grouped_data["net_profit"] = net_profit
 
     return {"grouped_data": grouped_data}
