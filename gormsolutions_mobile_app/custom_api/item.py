@@ -616,3 +616,17 @@ def get_permitted_item_groups(user=None):
     permitted_item_groups = [row.item_group for row in pos_profile.item_groups if row.item_group]
 
     return permitted_item_groups
+
+
+# In apps/gormsolutions_mobile_app/gormsolutions_mobile_app/custom_api/item.py
+import frappe
+
+def disable_negative_stock(doc, method):
+    """
+    This runs when an Item is saved
+    """
+    if doc.allow_negative_stock:
+        frappe.throw("Allow Negative Stock is not permitted!")
+    
+    # Optional: Log for debugging
+    frappe.log_error(f"Item {doc.name} validation passed", "Negative Stock Check")

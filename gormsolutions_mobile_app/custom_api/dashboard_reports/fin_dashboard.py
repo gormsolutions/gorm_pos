@@ -54,7 +54,9 @@ def chairman_dashboard(
             sle.item_code,
             i.item_name,
             i.item_group,
+            i.stock_uom,
             sle.warehouse,
+            sle.valuation_rate,
             SUM(sle.actual_qty) AS qty,
             SUM(sle.actual_qty * sle.valuation_rate) AS stock_value
         FROM `tabStock Ledger Entry` sle
@@ -72,8 +74,11 @@ def chairman_dashboard(
         {
             "item_code": d["item_code"],
             "item_name": d["item_name"],
-            "qty": d["qty"],
-            "stock_value": d["stock_value"]
+            "qty": d.get("qty") or 0,
+            "item_group": d["item_group"],
+            "valuation_rate": d.get("valuation_rate") or 0,
+            "uom": d.get("stock_uom"),
+            "stock_value": d.get("stock_value") or 0
         }
         for d in top_items
     ]
@@ -89,8 +94,13 @@ def chairman_dashboard(
     warehouse_map = {}
     for d in data:
         wh = d["warehouse"]
+
         if wh not in warehouse_map:
-            warehouse_map[wh] = {"qty": 0, "value": 0}
+            warehouse_map[wh] = {
+                "qty": 0,
+                "value": 0,
+                "stock_uom": d.get("stock_uom")
+            }
 
         warehouse_map[wh]["qty"] += d.get("qty") or 0
         warehouse_map[wh]["value"] += d.get("stock_value") or 0
@@ -98,7 +108,12 @@ def chairman_dashboard(
     stock_by_warehouse = {
         "labels": list(warehouse_map.keys()),
         "qty": [v["qty"] for v in warehouse_map.values()],
-        "value": [v["value"] for v in warehouse_map.values()]
+        "value": [v["value"] for v in warehouse_map.values()],
+        "valuation_rate": [
+            (v["value"] / v["qty"]) if v["qty"] else 0
+            for v in warehouse_map.values()
+        ],
+        "stock_uom": [v["stock_uom"] for v in warehouse_map.values()]
     }
 
     # ---------------------------
@@ -107,8 +122,13 @@ def chairman_dashboard(
     group_map = {}
     for d in data:
         grp = d["item_group"]
+
         if grp not in group_map:
-            group_map[grp] = {"qty": 0, "value": 0}
+            group_map[grp] = {
+                "qty": 0,
+                "value": 0,
+                "stock_uom": d.get("stock_uom")
+            }
 
         group_map[grp]["qty"] += d.get("qty") or 0
         group_map[grp]["value"] += d.get("stock_value") or 0
@@ -116,7 +136,12 @@ def chairman_dashboard(
     stock_by_item_group = {
         "labels": list(group_map.keys()),
         "qty": [v["qty"] for v in group_map.values()],
-        "value": [v["value"] for v in group_map.values()]
+        "value": [v["value"] for v in group_map.values()],
+        "valuation_rate": [
+            (v["value"] / v["qty"]) if v["qty"] else 0
+            for v in group_map.values()
+        ],
+        "stock_uom": [v["stock_uom"] for v in group_map.values()]
     }
 
     # ---------------------------

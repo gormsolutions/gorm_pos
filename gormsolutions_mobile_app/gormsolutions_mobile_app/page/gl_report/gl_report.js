@@ -404,21 +404,47 @@ frappe.pages["gl-report"].on_page_load = function (wrapper) {
     });
 
     // -------------------- ACCOUNT & COST CENTER --------------------
-    filters.account = add_filter({
-        label: "Account", 
-        fieldtype: "Link", 
-        fieldname: "account", 
-        options: "Account",
-        get_query: () => ({ filters: { company: filters.company.get_value() } })
-    });
+    // filters.account = add_filter({
+    //     label: "Account", 
+    //     fieldtype: "Link", 
+    //     fieldname: "account", 
+    //     options: "Account",
+    //     get_query: () => ({ filters: { company: filters.company.get_value() } })
+    // });
 
-    filters.cost_center = add_filter({
-        label: "Cost Center", 
-        fieldtype: "Link", 
-        fieldname: "cost_center", 
-        options: "Cost Center",
-        get_query: () => ({ filters: { company: filters.company.get_value() } })
-    });
+    // filters.cost_center = add_filter({
+    //     label: "Cost Center", 
+    //     fieldtype: "Link", 
+    //     fieldname: "cost_center", 
+    //     options: "Cost Center",
+    //     get_query: () => ({ filters: { company: filters.company.get_value() } })
+    // });
+
+        filters.account = add_filter({
+    label: "Account",
+    fieldtype: "MultiSelectList",
+    fieldname: "account",
+    get_data: function(txt) {
+        return frappe.db.get_link_options(
+            "Account",
+            txt,
+            { company: filters.company.get_value() }
+        );
+    }
+});
+
+filters.cost_center = add_filter({
+    label: "Cost Center",
+    fieldtype: "MultiSelectList",
+    fieldname: "cost_center",
+    get_data: function(txt) {
+        return frappe.db.get_link_options(
+            "Cost Center",
+            txt,
+            { company: filters.company.get_value() }
+        );
+    }
+});
 
     // -------------------- VOUCHER TYPE & VOUCHER NO --------------------
     filters.voucher_type = add_filter({ 
@@ -435,74 +461,79 @@ frappe.pages["gl-report"].on_page_load = function (wrapper) {
     });
 
     // -------------------- PARTY TYPE & PARTY --------------------
-    const party_type_wrapper = $(`<div class="gl-filter-field">
+
+const party_type_wrapper = $(`
+    <div class="gl-filter-field">
         <label>Party Type</label>
         <select id="party_type_select" class="form-control">
             <option value="">Select</option>
             <option value="Customer">Customer</option>
             <option value="Supplier">Supplier</option>
         </select>
-    </div>`).appendTo("#gl_filter_row");
+    </div>
+`).appendTo("#gl_filter_row");
 
-    filters.party_type = {
-        get_value: () => $("#party_type_select").val(),
-        set_value: val => $("#party_type_select").val(val)
-    };
+filters.party_type = {
+    get_value: () => $("#party_type_select").val(),
+    set_value: val => $("#party_type_select").val(val)
+};
 
-    const party_wrapper = $(`<div class="gl-filter-field position-relative">
-        <label>Party</label>
-        <input type="text" id="party_input" class="form-control" placeholder="Search Customer/Supplier">
-        <div id="party_results" class="gl-party-results" style="display: none;"></div>
-    </div>`).appendTo("#gl_filter_row");
 
-    filters.party = {
-        get_value: () => $("#party_input").val(),
-        set_value: val => $("#party_input").val(val)
-    };
+// Party Multi Select
+filters.party = add_filter({
+    label: "Party",
+    fieldtype: "MultiSelectList",
+    fieldname: "party",
 
-    // Party search logic
-    $("#party_input").on("input", async function () {
-        const query = $(this).val();
+    get_data: async function (txt) {
+
         const ptype = filters.party_type.get_value();
-        const results_container = $("#party_results");
 
-        if (!ptype || !query) {
-            results_container.hide();
-            return;
+        // Require Party Type first
+        if (!ptype) {
+            frappe.show_alert({
+                message: __("Please select Party Type first"),
+                indicator: "orange"
+            });
+            return [];
         }
 
         try {
+
             const res = await frappe.call({
                 method: "gormsolutions_mobile_app.custom_api.gl_report_scripts.cost_center.get_parties",
-                args: { party_type: ptype, txt: query }
+                args: {
+                    party_type: ptype,
+                    txt: txt || ""
+                }
             });
 
-            results_container.empty().show();
-            
-            if (res.message && res.message.length) {
-                res.message.forEach(p => {
-                    const item = $(`<a href="#">${p.description}</a>`);
-                    item.on("click", e => {
-                        e.preventDefault();
-                        filters.party.set_value(p.value);
-                        results_container.hide();
-                    });
-                    results_container.append(item);
-                });
-            } else {
-                results_container.append(`<a href="#" style="color:#94a3b8;">No results found</a>`);
-            }
+            return (res.message || []).map(p => ({
+                value: p.value,
+                description: p.description
+            }));
+
         } catch (err) {
+
             console.error("Error fetching parties:", err);
-        }
-    });
 
-    $(document).on("click", function(e) {
-        if (!$(e.target).closest("#party_input, #party_results").length) {
-            $("#party_results").hide();
-        }
-    });
+            frappe.show_alert({
+                message: __("Error fetching parties"),
+                indicator: "red"
+            });
 
+            return [];
+        }
+    }
+});
+
+
+// Clear selected parties when Party Type changes
+$("#party_type_select").on("change", function () {
+
+    filters.party.set_value([]);
+
+});
     // Reset dependent filters on company change
     filters.company.$input.on("change", () => {
         filters.account.set_value("");
@@ -579,6 +610,7 @@ frappe.pages["gl-report"].on_page_load = function (wrapper) {
             });
 
             const data = res.message || {};
+            console.log("Fetched data:", data, args);
             const entries = data.entries || [];
             total_entries = data.total_count || entries.length;
 
@@ -874,28 +906,158 @@ frappe.pages["gl-report"].on_page_load = function (wrapper) {
             return;
         }
         
-        function export_excel() {
-            const table = document.querySelector("#gl_report_table");
-            if (!table) {
-                frappe.msgprint({
-                    title: __('No Data'),
-                    message: __('No report data available to export. Please run the report first.'),
-                    indicator: 'orange'
-                });
-                return;
-            }
+function export_excel() {
+    const table = document.querySelector("#gl_report_table");
 
-            try {
-                const wb = XLSX.utils.table_to_book(table, { sheet: "General Ledger" });
-                XLSX.writeFile(wb, `General_Ledger_${frappe.datetime.get_today()}.xlsx`);
-                frappe.show_alert({
-                    message: __('Report exported successfully'),
-                    indicator: 'green'
-                }, 3);
-            } catch (err) {
-                frappe.msgprint(__("Error exporting report: ") + err.message);
-            }
+    if (!table) {
+        frappe.msgprint({
+            title: __('No Data'),
+            message: __('No report data available to export. Please run the report first.'),
+            indicator: 'orange'
+        });
+        return;
+    }
+
+    let rows = [];
+
+    // ======================
+    // HEADER
+    // ======================
+    rows.push([
+        "Date",
+        "Voucher No",
+        "Voucher Type",
+        "Account",
+        "Party",
+        "Remarks",
+        "Debit",
+        "Credit",
+        "Balance",
+        "Cost Center"
+    ]);
+
+    // ======================
+    // DATA ROWS (CLEAN ONLY)
+    // ======================
+    $("#gl_report_table tbody tr").each(function () {
+
+        if (
+            $(this).hasClass("gl-group-header") ||
+            $(this).hasClass("gl-summary-row") ||
+            $(this).hasClass("gl-grand-total") ||
+            $(this).hasClass("gl-closing-row")
+        ) {
+            return;
         }
+
+        const tds = $(this).find("td");
+        if (tds.length < 10) return;
+
+        rows.push([
+            $(tds[0]).text().trim(),
+            $(tds[1]).text().trim(),
+            $(tds[2]).text().trim(),
+            $(tds[3]).text().trim(),
+            $(tds[4]).text().trim(),
+            $(tds[5]).text().trim(),
+            $(tds[6]).text().replace(/,/g, ''),
+            $(tds[7]).text().replace(/,/g, ''),
+            $(tds[8]).text().replace(/,/g, ''),
+            $(tds[9]).text().trim()
+        ]);
+    });
+
+    // ======================
+    // EXTRACT TOTALS FROM PAGE
+    // ======================
+    const opening_debit = report_opening_debit || 0;
+    const opening_credit = report_opening_credit || 0;
+    const opening_balance = report_opening_balance || 0;
+
+    const grand_debit = total_debit || 0;
+    const grand_credit = total_credit || 0;
+    const grand_balance = grand_debit - grand_credit;
+
+    const closing_debit = report_closing_debit || 0;
+    const closing_credit = report_closing_credit || 0;
+    const closing_balance = report_closing_balance || 0;
+
+    // ======================
+    // EMPTY ROW SPACER
+    // ======================
+    rows.push([]);
+
+    // ======================
+    // OPENING TOTALS
+    // ======================
+    rows.push([
+        "OPENING TOTALS",
+        "",
+        "",
+        "",
+        "",
+        "",
+        opening_debit,
+        opening_credit,
+        opening_balance,
+        ""
+    ]);
+
+    // ======================
+    // GRAND TOTAL
+    // ======================
+    rows.push([
+        "GRAND TOTAL",
+        "",
+        "",
+        "",
+        "",
+        "",
+        grand_debit,
+        grand_credit,
+        grand_balance,
+        ""
+    ]);
+
+    // ======================
+    // CLOSING TOTALS
+    // ======================
+    rows.push([
+        "CLOSING TOTAL (PERIOD)",
+        "",
+        "",
+        "",
+        "",
+        "",
+        closing_debit,
+        closing_credit,
+        closing_balance,
+        ""
+    ]);
+
+    // ======================
+    // BUILD EXCEL SHEET
+    // ======================
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    ws["!cols"] = [
+        { wch: 15 }, // Date
+        { wch: 18 }, // Voucher No
+        { wch: 18 }, // Voucher Type
+        { wch: 25 }, // Account
+        { wch: 20 }, // Party
+        { wch: 40 }, // Remarks
+        { wch: 15 }, // Debit
+        { wch: 15 }, // Credit
+        { wch: 15 }, // Balance
+        { wch: 20 }  // Cost Center
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "General Ledger");
+
+    XLSX.writeFile(wb, `General_Ledger_${frappe.datetime.get_today()}.xlsx`);
+}
 
         if (typeof XLSX === "undefined") {
             let script = document.createElement("script");

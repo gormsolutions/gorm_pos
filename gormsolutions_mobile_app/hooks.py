@@ -189,7 +189,11 @@ doc_events = {
    
         ],
     },
-
+    
+    "Item": {
+      
+        "validate": "gormsolutions_mobile_app.custom_api.item.disable_negative_stock"
+    },
     # "Product Bundle": {
     #     "before_save": "gormsolutions_mobile_app.custom_api.product_bundle.before_save_product_bundle"
     # }
